@@ -48,8 +48,11 @@ export class HoverPopup {
 
     const scoresEl = document.getElementById('popup-scores');
     if (scoresEl) {
-      if (node._isBlood) {
-        scoresEl.textContent = node.current != null ? `${node.current} ${node.unit || ''}` : 'Biomarker';
+      if (node._isBiomarker || node._isBlood) {
+        const spec = node.specimen_type ? ` · ${String(node.specimen_type).toUpperCase()}` : '';
+        scoresEl.textContent = node.current != null
+          ? `${node.current} ${node.unit || ''}${spec}`
+          : `Biomarker${spec}`;
       } else if (node._isEnvironment || node.impact === 'negative') {
         scoresEl.textContent = `Harm: ${node.longevity ?? '—'}`;
       } else {

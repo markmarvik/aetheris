@@ -1,26 +1,23 @@
 /**
  * BiomarkerTree
  *
- * Biomarker constellation (blood + urine + future) inspired by Bryan Johnson Blueprint / Siim Land.
- * Reuses core layout, rendering, interaction, and body integration from SupplementTree.
+ * Biomarker constellation (blood + urine + saliva + other) inspired by
+ * Bryan Johnson Blueprint / Siim Land. Reuses layout/rendering from SupplementTree.
  *
- * Nodes represent biomarkers across specimen types. Placed near relevant organs where possible.
- * Display shows current value (or key metric) + color by status (optimal/sub/high-risk).
- * Age predictor impact used for sizing/importance (higher impact = larger, closer in layout).
+ * Nodes represent biomarkers across specimen types. Placed near relevant organs
+ * where possible. Display shows current value + color by status (optimal/sub/high).
+ * Age predictor impact used for sizing/importance.
  *
- * Inspector shows rich details: ranges, age impact, risks, links to other constellations.
- *
- * See GitHub Issue #14 for the rename + multi-specimen vision.
+ * See GitHub Issue #14.
  */
 
 import { SupplementTree } from "./SupplementTree.js";
-import { computeBloodScore } from "../data/blood.js";
+import { computeBiomarkerScore } from "../data/biomarkers.js";
 
 export class BiomarkerTree extends SupplementTree {
   constructor(canvas, options = {}) {
     super(canvas, options);
 
-    // Blood-focused palette. Status will override per node.
     this.organColors = {
       heart:   '#fb7185',
       vascular: '#f87171',
@@ -32,14 +29,12 @@ export class BiomarkerTree extends SupplementTree {
       muscle:  '#fb923c',
       endocrine: '#f472b6',
       pancreas: '#f59e0b',
-      // Blood categories
+      adrenal: '#f472b6',
       inflammation: '#ef4444',
       metabolic: '#f59e0b',
       lipids: '#fb7185',
       hormones: '#c084fc',
       nutrients: '#4ade80',
-      kidney: '#67e8f9',
-      liver: '#a3e635',
       other: '#94a3b8'
     };
 
@@ -47,20 +42,30 @@ export class BiomarkerTree extends SupplementTree {
       'inflammation', 'metabolic', 'lipids', 'hormones',
       'nutrients', 'kidney', 'liver', 'other'
     ];
+
+    /** Optional specimen filter: null/"all" = show all specimen types. */
+    this.enabledSpecimens = new Set(['blood', 'urine', 'saliva', 'other']);
   }
 
-  loadData(bloodArray) {
-    this.rawSupplements = bloodArray;
+  loadData(markerArray) {
+    this.rawSupplements = markerArray;
 
-    this.nodes = bloodArray.map(m => {
-      const vitality = computeBloodScore(m);  // drives size + layout importance
+    this.nodes = markerArray.map(m => {
+      const specimen = m.specimen_type || 'blood';
+      const vitality = computeBiomarkerScore(m);
       return {
         ...m,
+        specimen_type: specimen,
         vitality,
         radius: this._calcNodeRadius({ ...m, vitality }, 0.6),
+        _isBiomarker: true,
+        // Legacy flag kept briefly so older inspector branches still work
         _isBlood: true,
-        // Ensure a display value for node (current or age impact)
-        displayValue: m.current != null ? String(m.current) : (m.age_impact != null ? (m.age_impact > 0 ? `+${m.age_impact}` : m.age_impact) : '?')
+        displayValue: m.current != null
+          ? String(m.current)
+          : (m.age_impact != null
+              ? (m.age_impact > 0 ? `+${m.age_impact}` : String(m.age_impact))
+              : '?')
       };
     });
 
@@ -68,16 +73,30 @@ export class BiomarkerTree extends SupplementTree {
     this.computeLayout();
   }
 
-  // Override node color: use status if present, else category, fallback to red for high risk
+  setSpecimenFilter(keys) {
+    if (!keys || keys.length === 0 || (keys.length === 1 && keys[0] === 'all')) {
+      this.enabledSpecimens = new Set(['blood', 'urine', 'saliva', 'other']);
+    } else {
+      this.enabledSpecimens = new Set(keys);
+    }
+    this._afterGroupChange();
+  }
+
+  _getVisibleNodes() {
+    let vis = super._getVisibleNodes();
+    if (this.enabledSpecimens && this.enabledSpecimens.size > 0) {
+      vis = vis.filter(n => this.enabledSpecimens.has(n.specimen_type || 'blood'));
+    }
+    return vis;
+  }
+
   _getNodeColor(node) {
     if (node.status === 'high') return '#ef4444';
     if (node.status === 'suboptimal') return '#f59e0b';
     if (node.status === 'optimal') return '#4ade80';
-    // fallback to category or base
     return super._getNodeColor ? super._getNodeColor(node) : '#94a3b8';
   }
 
-  // Custom node score display for blood: show current value or key metric instead of "vitality"
   _drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue }) {
     if (r < 10) return;
 
@@ -86,7 +105,6 @@ export class BiomarkerTree extends SupplementTree {
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-
     ctx.font = `${isSelected ? 700 : 600} ${fsVit}px Inter, system-ui, sans-serif`;
 
     let color = '#e0f2fe';
