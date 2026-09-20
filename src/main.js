@@ -193,6 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
     rewireMapControls();
     renderGroupFilters();
     renderNodeLimitControl();
+    wireAnatomyControls();
   }
 
   function updateConstellationButtons(activeType) {
@@ -734,6 +735,65 @@ document.addEventListener("DOMContentLoaded", () => {
   rewireMapControls();
   renderGroupFilters();
   renderNodeLimitControl();
+
+
+  // === Anatomy layer controls (Issue #16 Phase 1) ===
+  function syncAnatomySliders() {
+    const anatomy = treeInstance?.anatomy;
+    if (!anatomy) return;
+    const snap = anatomy.snapshot();
+    for (const layer of ['base', 'organs', 'skeleton', 'muscles']) {
+      const el = document.getElementById(`anatomy-op-${layer}`);
+      if (el) el.value = Math.round((snap.opacity[layer] ?? 0) * 100);
+    }
+    document.querySelectorAll('.anatomy-preset').forEach(btn => {
+      const on = btn.dataset.preset === snap.preset;
+      btn.classList.toggle('active', on);
+      btn.classList.toggle('border-cyan-400/40', on);
+      btn.classList.toggle('bg-cyan-400/10', on);
+      btn.classList.toggle('text-cyan-100', on);
+      btn.classList.toggle('border-white/10', !on);
+      btn.classList.toggle('text-white/60', !on);
+    });
+  }
+
+  function wireAnatomyControls() {
+    const toggle = document.getElementById('anatomy-toggle');
+    const panel = document.getElementById('anatomy-panel');
+    const icon = document.getElementById('anatomy-toggle-icon');
+    if (toggle && panel && !toggle._wired) {
+      toggle._wired = true;
+      toggle.onclick = () => {
+        const hidden = panel.classList.toggle('hidden');
+        if (icon) {
+          icon.classList.toggle('fa-chevron-down', hidden);
+          icon.classList.toggle('fa-chevron-up', !hidden);
+        }
+      };
+    }
+    document.querySelectorAll('.anatomy-preset').forEach(btn => {
+      if (btn._wired) return;
+      btn._wired = true;
+      btn.onclick = () => {
+        if (treeInstance?.setAnatomyPreset) {
+          treeInstance.setAnatomyPreset(btn.dataset.preset);
+          syncAnatomySliders();
+        }
+      };
+    });
+    for (const layer of ['base', 'organs', 'skeleton', 'muscles']) {
+      const el = document.getElementById(`anatomy-op-${layer}`);
+      if (!el || el._wired) continue;
+      el._wired = true;
+      el.oninput = () => {
+        if (treeInstance?.setAnatomyOpacity) {
+          treeInstance.setAnatomyOpacity(layer, Number(el.value) / 100);
+          syncAnatomySliders();
+        }
+      };
+    }
+    syncAnatomySliders();
+  }
 
   // Wire constellation switcher buttons (inside the map frame)
   const supBtn = document.getElementById('btn-constellation-supplements');

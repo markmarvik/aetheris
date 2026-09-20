@@ -159,6 +159,47 @@
             </button>
           </div>
 
+
+          <!-- Anatomy layers (Issue #16 Phase 1) -->
+          <div id="anatomy-controls"
+               class="bg-[#0a0d1a]/95 border border-white/15 rounded-2xl p-1.5 backdrop-blur-md w-full text-[10px]">
+            <button id="anatomy-toggle"
+                    type="button"
+                    class="w-full flex items-center justify-between px-1 py-0.5 rounded-lg hover:bg-white/5 text-white/80 transition"
+                    title="Body layer presets & opacity">
+              <span class="uppercase tracking-[1.5px] text-[9px] text-cyan-300/80">Anatomy</span>
+              <i id="anatomy-toggle-icon" class="fa-solid fa-chevron-down text-[9px]"></i>
+            </button>
+            <div id="anatomy-panel" class="hidden mt-1 flex flex-col gap-1">
+              <div id="anatomy-presets" class="flex flex-col gap-0.5">
+                <button type="button" data-preset="organs" class="anatomy-preset active w-full text-left px-2 py-0.5 rounded-lg border border-cyan-400/40 bg-cyan-400/10 text-cyan-100">Organs</button>
+                <button type="button" data-preset="musculoskeletal" class="anatomy-preset w-full text-left px-2 py-0.5 rounded-lg border border-white/10 text-white/60 hover:bg-white/5">Musculoskeletal</button>
+                <button type="button" data-preset="combined" class="anatomy-preset w-full text-left px-2 py-0.5 rounded-lg border border-white/10 text-white/60 hover:bg-white/5">Combined</button>
+                <button type="button" data-preset="skeletal" class="anatomy-preset w-full text-left px-2 py-0.5 rounded-lg border border-white/10 text-white/60 hover:bg-white/5">Skeletal only</button>
+                <button type="button" data-preset="muscles" class="anatomy-preset w-full text-left px-2 py-0.5 rounded-lg border border-white/10 text-white/60 hover:bg-white/5">Muscles only</button>
+              </div>
+              <div class="border-t border-white/10 pt-1 space-y-1">
+                <label class="flex items-center justify-between gap-1 text-white/55">
+                  <span>Base</span>
+                  <input id="anatomy-op-base" type="range" min="0" max="100" value="100" class="w-[72px] accent-cyan-400" />
+                </label>
+                <label class="flex items-center justify-between gap-1 text-white/55">
+                  <span>Organs</span>
+                  <input id="anatomy-op-organs" type="range" min="0" max="100" value="100" class="w-[72px] accent-cyan-400" />
+                </label>
+                <label class="flex items-center justify-between gap-1 text-white/55">
+                  <span>Skeleton</span>
+                  <input id="anatomy-op-skeleton" type="range" min="0" max="100" value="0" class="w-[72px] accent-cyan-400" />
+                </label>
+                <label class="flex items-center justify-between gap-1 text-white/55">
+                  <span>Muscles</span>
+                  <input id="anatomy-op-muscles" type="range" min="0" max="100" value="0" class="w-[72px] accent-cyan-400" />
+                </label>
+              </div>
+              <div class="text-[8px] text-white/35 leading-snug px-0.5">Placeholders until photoreal art lands (#16).</div>
+            </div>
+          </div>
+
           <!-- Mobile-only: Node limit slider + expandable vertical filters (stacked under selector+zooms, same column width).
                Desktop keeps horizontal at bottom. -->
           <div id="mobile-map-extra" class="flex flex-col gap-1 md:hidden bg-[#0a0d1a]/90 border border-white/10 rounded-2xl p-1.5 backdrop-blur w-full">
