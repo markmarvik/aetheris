@@ -200,6 +200,41 @@
             </div>
           </div>
 
+          <!-- My Stack (Phase 1): local personal stack, highlight mode, export/import -->
+          <div id="mystack-controls"
+               class="bg-[#0a0d1a]/95 border border-white/15 rounded-2xl p-1.5 backdrop-blur-md w-full text-[10px]">
+            <button id="mystack-toggle-panel"
+                    type="button"
+                    class="w-full flex items-center justify-between px-1 py-0.5 rounded-lg hover:bg-white/5 text-white/80 transition"
+                    title="Personal stack (saved in this browser)">
+              <span class="uppercase tracking-[1.5px] text-[9px] text-amber-300/90 flex items-center gap-1">
+                <i class="fa-solid fa-layer-group text-[9px]"></i> My Stack
+                <span id="mystack-count-badge"
+                      class="ml-0.5 font-mono text-[9px] px-1.5 py-0 rounded-full bg-amber-400/15 text-amber-200 border border-amber-400/30">0</span>
+              </span>
+              <i id="mystack-panel-icon" class="fa-solid fa-chevron-down text-[9px]"></i>
+            </button>
+            <div id="mystack-panel" class="hidden mt-1 flex flex-col gap-1">
+              <button id="mystack-highlight-btn"
+                      type="button"
+                      class="w-full text-left px-2 py-1 rounded-lg border border-white/10 text-white/70 hover:bg-white/5 transition"
+                      title="Dim nodes not in your stack">
+                <i class="fa-solid fa-eye text-amber-300/80 mr-1"></i>
+                <span id="mystack-highlight-label">Highlight off</span>
+              </button>
+              <button id="mystack-export-btn" type="button"
+                      class="w-full px-1.5 py-1 rounded-lg border border-white/10 text-white/70 hover:bg-white/5"
+                      title="Download stack JSON">
+                <i class="fa-solid fa-download"></i> Export JSON
+              </button>
+              <button id="mystack-clear-btn" type="button"
+                      class="w-full px-2 py-1 rounded-lg border border-red-400/25 text-red-300/80 hover:bg-red-950/40"
+                      title="Remove all nodes from stack">
+                Clear stack
+              </button>
+            </div>
+          </div>
+
           <!-- Mobile-only: Node limit slider + expandable vertical filters (stacked under selector+zooms, same column width).
                Desktop keeps horizontal at bottom. -->
           <div id="mobile-map-extra" class="flex flex-col gap-1 md:hidden bg-[#0a0d1a]/90 border border-white/10 rounded-2xl p-1.5 backdrop-blur w-full">
