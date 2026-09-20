@@ -2,14 +2,16 @@
 
 Refactored multi-file version of the original single-file AETHERIS experience.
 
-## Current Status (v0.2.2)
+## Current Status (v0.2.3)
 
-**Map UX (Supplements + Habits):**
+**Map UX (multi-constellation):**
 - Body-centric canvas: central human figure with nodes in organ rings
+- Constellations: Supplements, Habits, Exercises, Foods, Environment, **Biomarkers**
+- Biomarkers cover blood + urine + saliva (+ other) via `specimen_type` (Issue #14)
 - HiDPI rendering via `CanvasViewport` (sharp nodes and labels)
 - 2D pan (drag), zoom (wheel / +/-), recenter (`r`)
 - Dynamic layout: larger nodes closer to body, collision + body keep-out settling
-- Category group toggles on the map (show/hide supplement/habit categories)
+- Category group toggles on the map (+ specimen filters for Biomarkers)
 - `HoverPopup` on hover and click (pinned until click away or Esc)
 - Sidebar detail panel + Gorkipedia explorer modal
 
@@ -29,9 +31,9 @@ npm run dev
 | Area | Location |
 |------|----------|
 | Entry + input | [`src/main.js`](src/main.js) |
-| Supplements / Habits trees | [`src/trees/SupplementTree.js`](src/trees/SupplementTree.js), [`src/trees/HabitsTree.js`](src/trees/HabitsTree.js) |
+| Tree classes | [`src/trees/SupplementTree.js`](src/trees/SupplementTree.js), Habits / Exercise / Foods / Environment / [`BiomarkerTree.js`](src/trees/BiomarkerTree.js) |
 | HiDPI canvas | [`src/core/CanvasViewport.js`](src/core/CanvasViewport.js) |
-| Data | [`src/data/supplements.js`](src/data/supplements.js), [`src/data/habits.js`](src/data/habits.js) |
+| Data | [`src/data/supplements.js`](src/data/supplements.js), habits, exercises, foods, environment, [`biomarkers.js`](src/data/biomarkers.js) |
 | Hover card | [`src/components/HoverPopup.js`](src/components/HoverPopup.js) |
 | Deep dive modal | [`src/components/ExplorerModal.js`](src/components/ExplorerModal.js) |
 | Legacy layout helper | [`src/core/LayoutEngine.js`](src/core/LayoutEngine.js) (polar prototype; tree uses `_settleNodePositions`) |
@@ -79,9 +81,10 @@ All built assets (JS modules, CSS, body PNGs) are emitted under `/aetheris/asset
 
 ## Roadmap
 
-- Touch/pointer pan for mobile
-- Zoom toward cursor
-- ~~More constellations (Exercise added)~~, Nutrition, Toxins
-- `OrganSystem` cumulative organ impact
+- ~~Touch/pointer pan for mobile~~ (shipped)
+- Zoom toward cursor polish
+- ~~More constellations~~ (Exercise, Foods, Environment, Biomarkers shipped)
+- Layered anatomy (organs / skeleton / muscles) — Issue #16
+- `OrganSystem` cumulative organ impact across trees
 
 Original monolith reference: `/home/tux/aetheris-longevity-tree.html`
