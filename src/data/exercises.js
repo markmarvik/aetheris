@@ -3,7 +3,7 @@
 // Designed to reuse the SupplementTree / body-centric visualization.
 
 export const exercises = [
-  { id: "lift3x", name: "Full Body Strength 3x/Week", short: "LIFT 3X", cat: "strength", longevity: 91, qol: 86, diseases: 10, organs: ["muscle", "bones", "heart", "brain"], evidence: "5/5",
+  { id: "lift3x", name: "Full Body Strength 3x/Week", short: "LIFT 3X", cat: "strength", longevity: 91, qol: 86, diseases: 10, organs: ["muscle", "bones", "heart", "brain", "spine"], evidence: "5/5",
     blurb: "The highest-ROI resistance protocol for longevity. Reverses sarcopenia, improves metabolic health, bone density and cognitive resilience.",
     mechanisms: ["Myokine signaling", "mTOR/autophagy balance", "Mechanical loading on bone", "Insulin sensitivity"],
     dosage: "3 full-body sessions/wk. 3-4 sets of 6-10 reps compound lifts. Progressive overload.", synergies: ["zone2_base", "protein_habit"],
@@ -19,7 +19,7 @@ export const exercises = [
     gorkipedia: "Gorkipedia Entry: The classic bodybuilding split adapted for healthspan. Allows more focused work without daily full-body fatigue.",
     risks: "Overuse if no deloads." },
 
-  { id: "heavy2x", name: "Heavy Compounds 2x/Week", short: "HEAVY 2X", cat: "strength", longevity: 88, qol: 79, diseases: 8, organs: ["muscle", "bones", "nerves"], evidence: "5/5",
+  { id: "heavy2x", name: "Heavy Compounds 2x/Week", short: "HEAVY 2X", cat: "strength", longevity: 88, qol: 79, diseases: 8, organs: ["muscle", "bones", "nerves", "spine"], evidence: "5/5",
     blurb: "Low volume, high intensity. Builds maximal strength and neural drive. Excellent for older adults.",
     mechanisms: ["High threshold motor unit recruitment", "CNS adaptations", "Bone strain"],
     dosage: "2 sessions. Work up to 3-5 rep maxes on squat, deadlift, press variations.", synergies: ["lift3x", "zone2_base"],
@@ -131,7 +131,7 @@ export const exercises = [
     gorkipedia: "Gorkipedia Entry: Power is the first physical quality to decline with age. Olympic variations are one of the best tools to fight it.",
     risks: "Technical. Learn from coach. Don't max every session." },
 
-  { id: "plyo_low", name: "Low-Volume Plyometrics", short: "PLYO LOW", cat: "power", longevity: 75, qol: 73, diseases: 3, organs: ["muscle", "joints", "bones"], evidence: "3/5",
+  { id: "plyo_low", name: "Low-Volume Plyometrics", short: "PLYO LOW", cat: "power", longevity: 75, qol: 73, diseases: 3, organs: ["muscle", "joints", "bones", "spine"], evidence: "3/5",
     blurb: "Box jumps, broad jumps, low depth drops. Maintains elastic tendon properties and bone density.",
     mechanisms: ["Stretch-shortening cycle", "Tendon stiffness", "Osteogenic loading"],
     dosage: "1x/week. 3-4 sets of 4-6 quality reps. Full recovery between.", synergies: ["power_olympic"],

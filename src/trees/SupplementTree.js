@@ -10,6 +10,7 @@
 
 import { BaseTree } from "./BaseTree.js";
 import { calcVitality } from "../core/ScoringEngine.js";
+import { AnatomyRenderer } from "../core/AnatomyRenderer.js";
 
 export class SupplementTree extends BaseTree {
   /** Matches _drawCentralBody scale; used for keep-out ellipse. */
@@ -55,6 +56,12 @@ export class SupplementTree extends BaseTree {
     gut:     { scale: 1.2, dx: -1, dy: -8 },
     mito:    { scale: 0.72, dx: 20, dy: 10 },
     nerves:  { scale: 1.0,  dx: 0, dy: 0 },
+
+    // Phase 1 placeholders (#16) — replace with real art when available
+    spine:     { scale: 0.95, dx: 0, dy: 8 },
+    kidneys:   { scale: 0.85, dx: 0, dy: 0 },
+    pancreas:  { scale: 0.7,  dx: -4, dy: -6 },
+    adrenals:  { scale: 0.65, dx: 0, dy: -18 },
 
     // Add more here as you create additional PNGs (immune, bones, joints, muscle accents, etc.)
     // immune: { scale: 1.0, dx: 0, dy: 0 },
@@ -137,22 +144,36 @@ export class SupplementTree extends BaseTree {
       joints:  '#f472b6',   // pink
       bones:   '#d1d5db',   // cool gray
       mito:    '#facc15',   // bright yellow (energy)
-      thyroid: '#fb7185'    // coral
+      thyroid: '#fb7185',   // coral
+      stomach: '#86efac',
+      spine:   '#cbd5e1',
+      kidney:  '#f87171',
+      kidneys: '#f87171',
+      pancreas:'#fbbf24',
+      adrenal: '#f472b6',
+      adrenals:'#f472b6'
     };
 
     // Sequence (kept for compatibility / future horizontal views; body-centric layout uses organ positions instead)
     this.sequenceOrder = [
       'brain', 'eyes', 'nerves',
       'heart', 'lungs',
-      'liver', 'gut',
+      'liver', 'stomach', 'gut',
+      'kidney', 'kidneys', 'pancreas', 'adrenal', 'adrenals',
       'immune', 'skin',
-      'muscle', 'joints', 'bones',
+      'muscle', 'joints', 'bones', 'spine',
       'mito', 'thyroid'
     ];
 
-    // PNG body assets (issue #2). Populated by _loadBodyAssets().
-    this.bodyImages = { base: {}, organs: {} };
+    // PNG body assets (issue #2 / #16). Populated by _loadBodyAssets().
+    this.bodyImages = { base: {}, organs: {}, skeleton: {}, muscles: {} };
     this._bodyPngReady = false;
+    // Layered anatomy opacity / presets (Issue #16 Phase 1)
+    this.anatomy = new AnatomyRenderer();
+    this.anatomy.applyPreset('organs');
+    this.anatomy.subscribe(() => {
+      if (this.canvas && typeof this.draw === 'function') this.draw();
+    });
     this._loadBodyAssets();
   }
 
@@ -306,11 +327,18 @@ export class SupplementTree extends BaseTree {
       lungs:   { x: wx(70), y: wy(68) },  // anatomical right lung (larger, screen left)
       liver:   { x: wx(72), y: wy(92) },  // anatomical right (screen left) to match corrected body draw
       gut:     { x: wx(85), y: wy(112) },
+      stomach: { x: wx(88), y: wy(98) },
       immune:  { x: wx(85), y: wy(100) },
       skin:    { x: wx(85), y: wy(55) },
       muscle:  { x: wx(55), y: wy(95) },
       joints:  { x: wx(68), y: wy(55) },
       bones:   { x: wx(74), y: wy(153) },
+      spine:   { x: wx(85), y: wy(88) },
+      kidney:  { x: wx(70), y: wy(105) },
+      kidneys: { x: wx(85), y: wy(105) },
+      pancreas:{ x: wx(90), y: wy(100) },
+      adrenal: { x: wx(70), y: wy(92) },
+      adrenals:{ x: wx(85), y: wy(92) },
       mito:    { x: wx(88), y: wy(78) },
       thyroid: { x: wx(85), y: wy(40) },
       sleep:      { x: wx(85), y: wy(30) },
@@ -337,39 +365,28 @@ export class SupplementTree extends BaseTree {
 
   _loadBodyAssets() {
     // Use import.meta.env.BASE_URL so GitHub Pages (/aetheris/) + local dev both resolve PNGs correctly.
-    // Vite injects the production base during build; dev uses '/'.
     const base = import.meta.env.BASE_URL + 'assets/body';
-    const pending = [];
 
-    // Body bases (gender aware)
-    ['male', 'female'].forEach((g) => {
-      const img = new Image();
-      img.src = `${base}/base/body-${g}.png`;
-      pending.push(new Promise((resolve) => {
-        img.onload = () => { this.bodyImages.base[g] = img; resolve(); };
-        img.onerror = () => { resolve(); }; // graceful: just won't draw that gender
-      }));
-    });
-
-    // Available organs from the provided assets (90%+ of the requested set)
-    // We have: brain, eyes, gut, heart, liver, lungs (single), mito, nerves, stomach, thyroid
-    const organKeys = ['brain', 'eyes', 'gut', 'heart', 'liver', 'lungs', 'mito', 'nerves', 'stomach', 'thyroid'];
-    organKeys.forEach((key) => {
-      const img = new Image();
-      img.src = `${base}/organs/${key}.png`;
-      pending.push(new Promise((resolve) => {
-        img.onload = () => { this.bodyImages.organs[key] = img; resolve(); };
-        img.onerror = () => { resolve(); };
-      }));
-    });
-
-    Promise.all(pending).then(() => {
+    this.anatomy.load(base).then(() => {
+      // Mirror images onto bodyImages for existing draw helpers
+      this.bodyImages.base = this.anatomy.images.base;
+      this.bodyImages.organs = this.anatomy.images.organs;
+      this.bodyImages.skeleton = this.anatomy.images.skeleton;
+      this.bodyImages.muscles = this.anatomy.images.muscles;
       this._bodyPngReady = true;
-      // One redraw once assets are hot (so first paint after load shows the PNG body)
       if (this.canvas && typeof this.draw === 'function') {
         requestAnimationFrame(() => this.draw());
       }
     });
+  }
+
+  /** Apply an anatomy view preset (organs / musculoskeletal / combined / skeletal / muscles). */
+  setAnatomyPreset(name) {
+    this.anatomy?.applyPreset(name);
+  }
+
+  setAnatomyOpacity(layer, value) {
+    this.anatomy?.setLayerOpacity(layer, value);
   }
 
   /** Ellipse radius along a ray from body center (matches scaled silhouette). */
@@ -653,10 +670,13 @@ export class SupplementTree extends BaseTree {
     // We highlight organs that the currently selected node influences.
     const visibleNodes = this._getVisibleNodes();
     const selectedNodeForBody = this.selectedId ? visibleNodes.find(n => n.id === this.selectedId) || null : null;
-    const highlightOrgs = selectedNodeForBody ? (selectedNodeForBody.organs || []) : [];
+    const rawHighlightOrgs = selectedNodeForBody ? (selectedNodeForBody.organs || []) : [];
+    const highlightOrgs = this.anatomy
+      ? [...this.anatomy.expandHighlights(rawHighlightOrgs)]
+      : rawHighlightOrgs;
     const isNegativeImpact = !!(selectedNodeForBody && (selectedNodeForBody.impact === 'negative' || selectedNodeForBody._isNegative));
 
-    // PNG body is the only version.
+    // PNG body is the only version (layered via AnatomyRenderer — Issue #16).
     if (this._bodyPngReady) {
       this._drawCentralBodyPng(ctx, 0, 0, 3.15, highlightOrgs, isNegativeImpact);
     } else {
@@ -813,6 +833,8 @@ export class SupplementTree extends BaseTree {
   _drawCentralBodyPng(ctx, cx, cy, s, highlightOrgs = [], isNegative = false) {
     const active = new Set(highlightOrgs);
     const hasSelection = active.size > 0;
+    const layerOp = this.anatomy?.opacity || { base: 1, skeleton: 0, muscles: 0, organs: 1 };
+    const layerVis = this.anatomy?.visible || { base: true, skeleton: false, muscles: false, organs: true };
 
     const hx = (x) => cx + (x - 85) * s;
     const hy = (y) => cy + (y - 100) * s;
@@ -824,6 +846,21 @@ export class SupplementTree extends BaseTree {
     const coreX = hx(85);
     const coreY = hy(95);
 
+    // Shared body-frame rect (used by base / skeleton / muscles full-body layers)
+    const cfg = SupplementTree.PNG_BODY_CONFIG || {};
+    const bodyFrame = (() => {
+      const gender = this._getCurrentGender();
+      const bodyImg = this.bodyImages.base[gender] || this.bodyImages.base.male;
+      const imgW = (bodyImg && bodyImg.naturalWidth) || 360;
+      const imgH = (bodyImg && bodyImg.naturalHeight) || 780;
+      const bScale = (cfg.scale ?? 0.25) * s;
+      const dw = imgW * bScale;
+      const dh = imgH * bScale;
+      const bx = coreX + ((cfg.dx ?? 0) * s);
+      const by = coreY + ((cfg.dy ?? 0) * s) - dh * (0.48 + (cfg.vOffset ?? -0.03));
+      return { bodyImg, dw, dh, bx: bx - dw / 2, by, gender };
+    })();
+
     // Ambient halo (cheap + pretty, keep from the old aesthetic)
     const amb = ctx.createRadialGradient(coreX, coreY, 8 * s, coreX, coreY, 130 * s);
     amb.addColorStop(0, active.has('skin') ? 'rgba(251, 191, 36, 0.14)' : 'rgba(103, 232, 249, 0.07)');
@@ -834,39 +871,56 @@ export class SupplementTree extends BaseTree {
     ctx.arc(coreX, coreY, 130 * s, 0, Math.PI * 2);
     ctx.fill();
 
-    // Draw the gender-appropriate body base silhouette.
-    // The PNGs (≈360x780) include head + torso + limbs.
-    const gender = this._getCurrentGender();
-    const bodyImg = this.bodyImages.base[gender] || this.bodyImages.base.male;
-    if (bodyImg && bodyImg.complete && bodyImg.naturalWidth > 10) {
-      const cfg = SupplementTree.PNG_BODY_CONFIG || {};
-      const imgW = bodyImg.naturalWidth;
-      const imgH = bodyImg.naturalHeight;
-      const bScale = (cfg.scale ?? 0.25) * s;
-      const dw = imgW * bScale;
-      const dh = imgH * bScale;
-      const bx = coreX + ((cfg.dx ?? 0) * s);
-      const by = coreY + ((cfg.dy ?? 0) * s) - dh * (0.48 + (cfg.vOffset ?? -0.03));
-
-      // When something is selected, dim the body a bit so the glowing organs pop more
+    // --- Layer: base silhouette ---
+    if (layerVis.base && bodyFrame.bodyImg && bodyFrame.bodyImg.complete && bodyFrame.bodyImg.naturalWidth > 10) {
+      let alpha = layerOp.base;
       if (hasSelection) {
-        ctx.globalAlpha = SupplementTree.PNG_BODY_ALPHA_WITH_SELECTION ?? 0.82;
+        alpha *= (SupplementTree.PNG_BODY_ALPHA_WITH_SELECTION ?? 0.82);
       }
-      ctx.drawImage(bodyImg, bx - dw / 2, by, dw, dh);
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(bodyFrame.bodyImg, bodyFrame.bx, bodyFrame.by, bodyFrame.dw, bodyFrame.dh);
       ctx.globalAlpha = 1.0;
     }
 
-    // Organ layer z-order (back to front). We only draw what we actually loaded.
-    // Anchors come from the same _getOrganPositions() the nodes use, so registration should be close.
+    // --- Layer: skeleton (full-body overlay) ---
+    const skelImg = this.bodyImages.skeleton?.full;
+    if (layerVis.skeleton && skelImg && skelImg.complete && skelImg.naturalWidth > 10) {
+      ctx.globalAlpha = layerOp.skeleton;
+      ctx.drawImage(skelImg, bodyFrame.bx, bodyFrame.by, bodyFrame.dw, bodyFrame.dh);
+      ctx.globalAlpha = 1.0;
+    }
+
+    // --- Layer: muscles (anterior primary; posterior lightly if both loaded) ---
+    const muscAnt = this.bodyImages.muscles?.anterior;
+    const muscPost = this.bodyImages.muscles?.posterior;
+    if (layerVis.muscles) {
+      if (muscAnt && muscAnt.complete && muscAnt.naturalWidth > 10) {
+        ctx.globalAlpha = layerOp.muscles;
+        ctx.drawImage(muscAnt, bodyFrame.bx, bodyFrame.by, bodyFrame.dw, bodyFrame.dh);
+        ctx.globalAlpha = 1.0;
+      }
+      if (muscPost && muscPost.complete && muscPost.naturalWidth > 10 && layerOp.muscles > 0.5) {
+        ctx.globalAlpha = layerOp.muscles * 0.35;
+        ctx.drawImage(muscPost, bodyFrame.bx, bodyFrame.by, bodyFrame.dw, bodyFrame.dh);
+        ctx.globalAlpha = 1.0;
+      }
+    }
+
+    // --- Layer: organs ---
+    // Organ layer z-order (back to front). Includes Phase 1 placeholders (spine/kidneys/…).
     const anchors = (typeof this._getOrganPositions === 'function') ? this._getOrganPositions() : {};
     const organDrawOrder = [
-      'lungs',     // behind heart/liver
+      'spine',
+      'lungs',
+      'kidneys',
+      'adrenals',
       'liver',
-      'stomach',   // upper gut
-      'gut',       // lower coils (we have both assets)
+      'pancreas',
+      'stomach',
+      'gut',
       'heart',
-      'mito',      // energy orb near heart
-      'nerves',    // overlay lines
+      'mito',
+      'nerves',
       'thyroid',
       'brain',
       'eyes'
@@ -876,6 +930,8 @@ export class SupplementTree extends BaseTree {
     const organCfg = SupplementTree.PNG_ORGAN_CONFIG || {};
 
     for (const key of organDrawOrder) {
+      if (!layerVis.organs || layerOp.organs <= 0.01) break;
+
       let img = this.bodyImages.organs[key];
       if (!img || !img.complete || img.naturalWidth < 10) continue;
 
@@ -910,7 +966,7 @@ export class SupplementTree extends BaseTree {
           ctx.shadowBlur = shapedBlur;
           ctx.shadowOffsetX = 0;
           ctx.shadowOffsetY = 0;
-          ctx.globalAlpha = shapedAlpha;
+          ctx.globalAlpha = shapedAlpha * layerOp.organs;
 
           const gw = ow * enlarge;
           const gh = oh * enlarge;
@@ -934,10 +990,11 @@ export class SupplementTree extends BaseTree {
         ? (SupplementTree.PNG_IDLE_ALPHA_WITH_SELECTION ?? 0.22)
         : (SupplementTree.PNG_IDLE_ALPHA_NO_SELECTION ?? 0.78);
 
-      ctx.globalAlpha = isAct
+      const organAlpha = (isAct
         ? (SupplementTree.PNG_ACTIVE_ALPHA ?? 1.0)
-        : idleAlpha;
+        : idleAlpha) * layerOp.organs;
 
+      ctx.globalAlpha = organAlpha;
       ctx.drawImage(img, ax - ow / 2, ay - oh / 2, ow, oh);
       ctx.globalAlpha = 1.0;
     }

@@ -2,14 +2,16 @@
 
 Refactored multi-file version of the original single-file AETHERIS experience.
 
-## Current Status (v0.2.2)
+## Current Status (v0.2.4)
 
-**Map UX (Supplements + Habits):**
+**Map UX (multi-constellation):**
 - Body-centric canvas: central human figure with nodes in organ rings
+- Constellations: Supplements, Habits, Exercises, Foods, Environment, Biomarkers
+- **Layered anatomy** (Issue #16 Phase 1): independent opacity for base / organs / skeleton / muscles + view presets
 - HiDPI rendering via `CanvasViewport` (sharp nodes and labels)
 - 2D pan (drag), zoom (wheel / +/-), recenter (`r`)
 - Dynamic layout: larger nodes closer to body, collision + body keep-out settling
-- Category group toggles on the map (show/hide supplement/habit categories)
+- Category group toggles on the map
 - `HoverPopup` on hover and click (pinned until click away or Esc)
 - Sidebar detail panel + Gorkipedia explorer modal
 
@@ -29,9 +31,10 @@ npm run dev
 | Area | Location |
 |------|----------|
 | Entry + input | [`src/main.js`](src/main.js) |
-| Supplements / Habits trees | [`src/trees/SupplementTree.js`](src/trees/SupplementTree.js), [`src/trees/HabitsTree.js`](src/trees/HabitsTree.js) |
+| Tree classes | [`src/trees/SupplementTree.js`](src/trees/SupplementTree.js) (+ Habits / Exercise / Foods / Environment / BiomarkerTree) |
+| Layered anatomy | [`src/core/AnatomyRenderer.js`](src/core/AnatomyRenderer.js) + body draw in SupplementTree |
 | HiDPI canvas | [`src/core/CanvasViewport.js`](src/core/CanvasViewport.js) |
-| Data | [`src/data/supplements.js`](src/data/supplements.js), [`src/data/habits.js`](src/data/habits.js) |
+| Data | [`src/data/*.js`](src/data/) |
 | Hover card | [`src/components/HoverPopup.js`](src/components/HoverPopup.js) |
 | Deep dive modal | [`src/components/ExplorerModal.js`](src/components/ExplorerModal.js) |
 | Legacy layout helper | [`src/core/LayoutEngine.js`](src/core/LayoutEngine.js) (polar prototype; tree uses `_settleNodePositions`) |
@@ -77,11 +80,39 @@ After the setting change, push to `main` (or run the workflow manually from the 
 
 All built assets (JS modules, CSS, body PNGs) are emitted under `/aetheris/assets/...`.
 
+
+## Anatomy assets (Issue #16)
+
+Folder layout under `public/assets/body/`:
+
+```
+base/          body-male.png, body-female.png     (real art)
+organs/        brain, eyes, gut, heart, liver, lungs, mito, nerves, stomach, thyroid  (real)
+               + spine, kidneys, pancreas, adrenals                                  (Phase 1 placeholders)
+skeleton/      skeleton_full.png                                                     (placeholder)
+muscles/       muscles_anterior.png, muscles_posterior.png                           (placeholders)
+```
+
+**UI:** right-side **Anatomy** panel → presets (Organs / Musculoskeletal / Combined / Skeletal only / Muscles only) + per-layer opacity sliders. State lives in `AnatomyRenderer`; drawing stays in `SupplementTree._drawCentralBodyPng` so pan/zoom/HiDPI keep working.
+
+### Real art still needed (follow-up)
+Replace placeholders with transparent PNGs (same scale language as existing organ assets):
+- Photoreal / illustrated `spine.png`, `kidneys.png`, `pancreas.png`, `adrenals.png`
+- `skeleton_full.png` (or torso + limb bones)
+- `muscles_anterior.png` / `muscles_posterior.png` (+ optional arm/leg detail sheets)
+- Limb insets / click-to-zoom (Phase 2 of #16 — deferred)
+
+### Extending layers
+1. Drop PNGs into the folders above (names match `AnatomyRenderer` load list).
+2. Add organ keys to `ORGAN_ASSET_KEYS` / `PNG_ORGAN_CONFIG` / `_getOrganPositions` / `organMeta` as needed.
+3. Tag data nodes with matching `organs: [...]` so rings + highlights resolve.
+
 ## Roadmap
 
-- Touch/pointer pan for mobile
-- Zoom toward cursor
-- ~~More constellations (Exercise added)~~, Nutrition, Toxins
-- `OrganSystem` cumulative organ impact
+- ~~Touch/pointer pan for mobile~~
+- Zoom toward cursor polish
+- ~~More constellations~~ (Exercise, Foods, Environment, Biomarkers)
+- Layered anatomy Phase 2: photoreal spine/kidneys/MSK art + limb detail (#16)
+- `OrganSystem` cumulative organ impact across trees
 
 Original monolith reference: `/home/tux/aetheris-longevity-tree.html`

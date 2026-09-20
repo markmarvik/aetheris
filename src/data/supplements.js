@@ -200,7 +200,7 @@ export const supplements = [
         bestForms: "Quercetin dihydrate or phytosome (Quercefit) + bromelain 100-200mg.",
         deficiencySigns: "High oxidative stress, histamine issues, frequent viral susceptibility, joint inflammation.",
         absorption: "Low native; pair with fat, bromelain, or use phytosome/liposomal. Vitamin C co-administration helps." },
-      { id: "berberine", name: "Berberine", short: "BERBERINE", cat: "metabolic", longevity: 76, qol: 69, diseases: 7, organs: ["liver", "gut", "heart"], evidence: "4/5", blurb: "Nature's metformin. Excellent for insulin sensitivity, lipids, and microbiome. Comparable results to some pharmaceuticals in trials.",
+      { id: "berberine", name: "Berberine", short: "BERBERINE", cat: "metabolic", longevity: 76, qol: 69, diseases: 7, organs: ["liver", "gut", "heart", "stomach"], evidence: "4/5", blurb: "Nature's metformin. Excellent for insulin sensitivity, lipids, and microbiome. Comparable results to some pharmaceuticals in trials.",
         mechanisms: ["AMPK activation (metabolic master switch)", "Gut microbiome shift", "LDL receptor upregulation", "Inhibits intestinal glucose absorption", "Activates FXR & TGR5 bile acid receptors"],
         studies: [{year:2022, finding:"Comparable HbA1c reduction to metformin in some trials (meta)", source:"Frontiers"}, {year:2023, finding:"Improved lipids & insulin sensitivity", source:"Multiple meta-analyses"}, {year:2024, finding:"Reduced liver fat in NAFLD (RCTs)", source:"J Hepatol"}],
         dosage: "500 mg 2–3x daily with meals (berberine HCl or dihydroberberine)", synergies: ["omega3", "curcumin", "akg", "chromium"],
@@ -894,7 +894,7 @@ export const supplements = [
         deficiencySigns: "Fear of 'antibiotic resistance' or 'gut dysbiosis' leading to self-medication with silver.",
         absorption: "Absorbed and then deposited permanently in tissues. Half-life is extremely long." },
 
-      { id: "green-tea-extract-high", name: "High-Dose Green Tea Extract (Empty Stomach)", short: "GTE HIGH", cat: "harmful-herb", impact: "negative", longevity: 44, qol: 50, diseases: 7, organs: ["liver", "gut"], evidence: "5/5", blurb: "Concentrated EGCG pills marketed for 'fat burning' and 'antioxidant'. On empty stomach or high dose, they are a leading cause of herbal supplement-induced liver injury (including transplants and death).",
+      { id: "green-tea-extract-high", name: "High-Dose Green Tea Extract (Empty Stomach)", short: "GTE HIGH", cat: "harmful-herb", impact: "negative", longevity: 44, qol: 50, diseases: 7, organs: ["liver", "gut", "stomach"], evidence: "5/5", blurb: "Concentrated EGCG pills marketed for 'fat burning' and 'antioxidant'. On empty stomach or high dose, they are a leading cause of herbal supplement-induced liver injury (including transplants and death).",
         mechanisms: ["High-dose EGCG depletes glutathione and causes mitochondrial toxicity in hepatocytes", "Idiosyncratic and dose-dependent hepatotoxicity, especially fasted", "Can cause acute liver failure requiring transplant"],
         studies: [{year:2006, finding:"Multiple cases of hepatotoxicity from green tea extract supplements (US and Europe)", source:"Liver Transpl & Ann Intern Med"}, {year:2016, finding:"Green tea extract was leading cause of liver injury in some supplement registries", source:"Hepatology"}, {year:2020, finding:"Fasted administration dramatically increases liver toxicity risk in trials", source:"J Nutr"}],
         dosage: "Common mistaken: 500–1000+ mg EGCG daily 'for metabolism' or 'cancer prevention', often on empty stomach", synergies: [],
@@ -916,7 +916,7 @@ export const supplements = [
         deficiencySigns: "'I'm training fasted / in a deficit so I need BCAAs to not lose muscle' — total daily protein matters far more.",
         absorption: "Rapid spikes of leucine etc.; the very thing that can be problematic chronically." },
 
-      { id: "arginine", name: "High-Dose L-Arginine", short: "ARGININE", cat: "harmful-stim", impact: "negative", longevity: 46, qol: 53, diseases: 6, organs: ["heart", "gut", "herpes"], evidence: "3/5", blurb: "Sold for 'pump', 'blood flow', 'ED', and 'heart health'. Oral arginine has very poor bioavailability (most is metabolized by gut/liver arginase). High doses can trigger herpes outbreaks (arginine is fuel for the virus) and cause GI distress with minimal NO benefit compared to citrulline.",
+      { id: "arginine", name: "High-Dose L-Arginine", short: "ARGININE", cat: "harmful-stim", impact: "negative", longevity: 46, qol: 53, diseases: 6, organs: ["heart", "gut", "herpes", "stomach"], evidence: "3/5", blurb: "Sold for 'pump', 'blood flow', 'ED', and 'heart health'. Oral arginine has very poor bioavailability (most is metabolized by gut/liver arginase). High doses can trigger herpes outbreaks (arginine is fuel for the virus) and cause GI distress with minimal NO benefit compared to citrulline.",
         mechanisms: ["Most oral arginine is broken down before reaching circulation", "Can fuel herpes simplex virus replication (cold sores, genital)", "High doses cause osmotic diarrhea and abdominal pain"],
         studies: [{year:2006, finding:"No improvement in endothelial function or exercise capacity with oral arginine in heart failure (RCT)", source:"JACC"}, {year:2009, finding:"Arginine supplementation increased mortality in post-MI patients (RCT stopped early)", source:"JAMA"}, {year:2015, finding:"Arginine triggers HSV reactivation; citrulline does not have same effect", source:"J Virol & clinical observations"}],
         dosage: "Common mistaken: 3–10 g pre-workout or daily 'for blood flow and pumps'", synergies: [],
@@ -927,7 +927,7 @@ export const supplements = [
         deficiencySigns: "'I want better pumps and blood flow' — citrulline or nitrates from food/beets are superior.",
         absorption: "Poor for raising plasma arginine; extensive first-pass metabolism." },
 
-      { id: "echinacea-chronic", name: "Echinacea (Chronic Daily)", short: "ECHINACEA", cat: "harmful-herb", impact: "negative", longevity: 50, qol: 58, diseases: 6, organs: ["immune", "liver", "gut"], evidence: "3/5", blurb: "The classic 'immune booster' for colds. Chronic daily use can overstimulate or dysregulate the immune system, potentially worsening autoimmune conditions, and has been linked to liver toxicity in some extracts. Best used short-term only if at all.",
+      { id: "echinacea-chronic", name: "Echinacea (Chronic Daily)", short: "ECHINACEA", cat: "harmful-herb", impact: "negative", longevity: 50, qol: 58, diseases: 6, organs: ["immune", "liver", "gut", "stomach"], evidence: "3/5", blurb: "The classic 'immune booster' for colds. Chronic daily use can overstimulate or dysregulate the immune system, potentially worsening autoimmune conditions, and has been linked to liver toxicity in some extracts. Best used short-term only if at all.",
         mechanisms: ["Alkylamides and polysaccharides stimulate macrophages and cytokines non-specifically", "Can exacerbate autoimmune activity (TNF, IL-1 etc.)", "Some preparations contain pyrrolizidine alkaloids with hepatotoxic potential"],
         studies: [{year:2007, finding:"No consistent benefit for cold prevention or duration in large well-designed trials", source:"Cochrane & NEJM"}, {year:2010, finding:"Case reports of hepatotoxicity and autoimmune flare with chronic use", source:"Liver Int & Clin Rheumatol"}, {year:2014, finding:"May increase risk of allergic reactions and asthma exacerbation in some", source:"Ann Allergy Asthma Immunol"}],
         dosage: "Common mistaken: 500–1000 mg extract daily 'throughout winter to prevent colds'", synergies: [],
@@ -938,7 +938,7 @@ export const supplements = [
         deficiencySigns: "'I get every cold that goes around so my immune system must be weak' — chronic use can make it less discerning.",
         absorption: "Variable by preparation; effects are immunomodulatory rather than nutritive." },
 
-      { id: "garcinia", name: "Garcinia Cambogia (HCA)", short: "GARCINIA", cat: "harmful-herb", impact: "negative", longevity: 41, qol: 46, diseases: 8, organs: ["liver", "brain", "gut"], evidence: "3/5", blurb: "The 'miracle' weight loss fruit extract (HCA). Multiple cases of acute liver failure, including deaths and transplants. Almost no sustainable weight loss in good trials beyond placebo + diet. Still heavily marketed on late-night TV and Amazon.",
+      { id: "garcinia", name: "Garcinia Cambogia (HCA)", short: "GARCINIA", cat: "harmful-herb", impact: "negative", longevity: 41, qol: 46, diseases: 8, organs: ["liver", "brain", "gut", "stomach"], evidence: "3/5", blurb: "The 'miracle' weight loss fruit extract (HCA). Multiple cases of acute liver failure, including deaths and transplants. Almost no sustainable weight loss in good trials beyond placebo + diet. Still heavily marketed on late-night TV and Amazon.",
         mechanisms: ["HCA inhibits citrate lyase (theoretical fat blocking) but human effect is tiny", "Can cause serotonin elevation → possible mania and liver stress via unknown mechanisms", "Some extracts contaminated or have direct hepatotoxins"],
         studies: [{year:2014, finding:"Multiple cases of acute liver injury and failure requiring transplant linked to Garcinia products", source:"World J Gastroenterol & FDA"}, {year:2011, finding:"Meta-analysis: small, short-term weight loss of ~1kg, not clinically meaningful", source:"J Obes"}, {year:2016, finding:"Further reports of hepatotoxicity, some fatal", source:"Intern Med J"}],
         dosage: "Common mistaken: 500–1500 mg HCA daily 'to block fat and suppress appetite'", synergies: [],
@@ -949,7 +949,7 @@ export const supplements = [
         deficiencySigns: "'I can't lose weight so I need something to block the fat I eat' — calorie deficit is the only blocker that works.",
         absorption: "Absorbed; the problem is downstream toxicity, not lack of effect on the target enzyme." },
 
-      { id: "high-dose-vit-c-chronic", name: "Megadose Vitamin C (Chronic 3g+)", short: "VIT C MEGA", cat: "harmful-vit", impact: "negative", longevity: 51, qol: 55, diseases: 5, organs: ["kidney", "gut", "iron"], evidence: "3/5", blurb: "Linus Pauling's legacy. While acute high doses during illness may help slightly, chronic daily 3-10g+ increases risk of oxalate kidney stones (especially in men), GI distress, and can promote iron overload in hemochromatosis or increase pro-oxidant activity in some contexts.",
+      { id: "high-dose-vit-c-chronic", name: "Megadose Vitamin C (Chronic 3g+)", short: "VIT C MEGA", cat: "harmful-vit", impact: "negative", longevity: 51, qol: 55, diseases: 5, organs: ["kidney", "gut", "iron", "stomach"], evidence: "3/5", blurb: "Linus Pauling's legacy. While acute high doses during illness may help slightly, chronic daily 3-10g+ increases risk of oxalate kidney stones (especially in men), GI distress, and can promote iron overload in hemochromatosis or increase pro-oxidant activity in some contexts.",
         mechanisms: ["Metabolized to oxalate → calcium oxalate stones", "Causes osmotic diarrhea and gut irritation at high doses", "Enhances non-heme iron absorption (harmful if iron overloaded)", "Can act as pro-oxidant in presence of free iron"],
         studies: [{year:1998, finding:"High vitamin C intake associated with increased kidney stone risk in men (large cohort)", source:"J Urol & KI"}, {year:2013, finding:"Dose-dependent GI side effects and no additional benefit above 200-500mg for most", source:"Cochrane & Am J Clin Nutr"}, {year:2020, finding:"Increased stone risk confirmed; genetic susceptibility in many men", source:"JAMA Internal Med"}],
         dosage: "Common mistaken: 2–10 g daily 'to stay healthy / prevent colds / antioxidant'", synergies: [],
@@ -996,8 +996,15 @@ export const organMeta = {
   joints: { label: "Joints", color: "#f472b6", icon: "fa-bone" },
   skin: { label: "Skin", color: "#fbbf24", icon: "fa-user" },
   gut: { label: "Gut", color: "#4ade80", icon: "fa-bacteria" },
+  stomach: { label: "Stomach", color: "#86efac", icon: "fa-stomach" },
   immune: { label: "Immune", color: "#e879f9", icon: "fa-shield-alt" },
   mito: { label: "Mitochondria", color: "#facc15", icon: "fa-bolt" },
   nerves: { label: "Nerves", color: "#a78bfa", icon: "fa-brain" },
-  thyroid: { label: "Thyroid", color: "#fb7185", icon: "fa-head-side" }
+  thyroid: { label: "Thyroid", color: "#fb7185", icon: "fa-head-side" },
+  spine: { label: "Spine", color: "#cbd5e1", icon: "fa-bone" },
+  kidney: { label: "Kidney", color: "#f87171", icon: "fa-tint" },
+  kidneys: { label: "Kidneys", color: "#f87171", icon: "fa-tint" },
+  pancreas: { label: "Pancreas", color: "#fbbf24", icon: "fa-droplet" },
+  adrenal: { label: "Adrenal", color: "#f472b6", icon: "fa-bolt" },
+  adrenals: { label: "Adrenals", color: "#f472b6", icon: "fa-bolt" }
 };
