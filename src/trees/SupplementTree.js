@@ -711,14 +711,18 @@ export class SupplementTree extends BaseTree {
       let r = (isSelected || isHovered) ? baseRadius * 1.18 : baseRadius;
 
       const groupColor = this._getNodeColor(node);
-      const isDimmed = false;
+      // My Stack highlight mode: dim nodes not in the user's personal stack
+      const stack = (typeof window !== 'undefined' && window.AETHERIS && window.AETHERIS.myStack) || null;
+      const constellation = (typeof window !== 'undefined' && window.AETHERIS && window.AETHERIS.currentConstellation) || 'supplements';
+      const inStack = !!(stack && typeof stack.has === 'function' && stack.has(node.id, constellation));
+      const isDimmed = !!(stack && typeof stack.shouldDim === 'function' && stack.shouldDim(node.id, constellation));
       const isHighValue = node.vitality > 82;
 
       // Unified simplified path (same when scrolling or not): dark fill + ring only.
       // No shading gradients, no inner circle. Fast + consistent. Selected glows.
-      if (isSelected || isHighlighted) {
-        ctx.shadowBlur = 22;
-        ctx.shadowColor = groupColor;
+      if (isSelected || isHighlighted || (inStack && stack?.highlightMode)) {
+        ctx.shadowBlur = isSelected || isHighlighted ? 22 : 14;
+        ctx.shadowColor = (inStack && stack?.highlightMode && !isSelected) ? '#d4af37' : groupColor;
       } else if (isHovered) {
         ctx.shadowBlur = 10;
         ctx.shadowColor = groupColor;
@@ -726,9 +730,13 @@ export class SupplementTree extends BaseTree {
         ctx.shadowBlur = 0;
       }
 
+      if (isDimmed) ctx.globalAlpha = 0.22;
+
       ctx.fillStyle = "#0f1424";
-      ctx.strokeStyle = (isSelected || isHighlighted) ? "#f4e9c8" : groupColor;
-      ctx.lineWidth = isSelected ? 4.2 : (isHovered ? 3.0 : 2.2);
+      ctx.strokeStyle = (isSelected || isHighlighted)
+        ? "#f4e9c8"
+        : (inStack && stack?.highlightMode ? '#d4af37' : groupColor);
+      ctx.lineWidth = isSelected ? 4.2 : (isHovered || (inStack && stack?.highlightMode) ? 3.0 : 2.2);
 
       ctx.beginPath();
       ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
@@ -745,6 +753,8 @@ export class SupplementTree extends BaseTree {
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.fillText(node.short, node.x, node.y - r - 4);
+
+      if (isDimmed) ctx.globalAlpha = 1;
 
       if (node.highDoseRisks) {
         const warnSize = Math.max(6, Math.min(9, r * 0.22));
