@@ -11,7 +11,7 @@ import { habits, habitCategories } from "./data/habits.js";
 import { exercises, exerciseCategories } from "./data/exercises.js";
 import { foods, foodCategories } from "./data/foods.js";
 import { environment, environmentCategories } from "./data/environment.js";
-import { blood, bloodCategories } from "./data/blood.js";
+import { biomarkers, biomarkerCategories, specimenTypes } from "./data/biomarkers.js";
 import { SupplementTree } from "./trees/SupplementTree.js";
 import { HabitsTree } from "./trees/HabitsTree.js";
 import { ExerciseTree } from "./trees/ExerciseTree.js";
@@ -129,7 +129,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const isExercises = type === 'exercises';
     const isFoods = type === 'foods';
     const isEnvironment = type === 'environment';
-    const isBlood = type === 'biomarkers';
+    const isBiomarkers = type === 'biomarkers';
 
     // Create the right tree class
     if (isSupplements) {
@@ -156,12 +156,13 @@ document.addEventListener("DOMContentLoaded", () => {
       treeInstance.loadData(environment);
       validateTreeData(environment, 'environment');
       window.AETHERIS.categories = environmentCategories;
-    } else if (isBlood) {
+    } else if (isBiomarkers) {
       treeInstance = new BiomarkerTree(canvas);
       bindTreeViewport(treeInstance);
-      treeInstance.loadData(blood);
-      validateTreeData(blood, 'biomarkers');
-      window.AETHERIS.categories = bloodCategories;
+      treeInstance.loadData(biomarkers);
+      validateTreeData(biomarkers, 'biomarkers');
+      window.AETHERIS.categories = biomarkerCategories;
+      window.AETHERIS.specimenTypes = specimenTypes;
     } else {
       treeInstance = new HabitsTree(canvas);
       bindTreeViewport(treeInstance);
@@ -185,7 +186,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Clear detail panel
     if (detailPanel) {
-      const label = isBlood ? 'biomarkers' : (isEnvironment ? 'environment' : (isFoods ? 'foods' : (isExercises ? 'exercises' : (isSupplements ? 'supplements' : 'habits'))));
+      const label = isBiomarkers ? 'biomarkers' : (isEnvironment ? 'environment' : (isFoods ? 'foods' : (isExercises ? 'exercises' : (isSupplements ? 'supplements' : 'habits'))));
       detailPanel.innerHTML = `<div class="text-white/60">Select a node on the ${label} map</div>`;
     }
 
@@ -201,13 +202,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const exBtn = document.getElementById('btn-constellation-exercises');
     const foodBtn = document.getElementById('btn-constellation-foods');
     const envBtn = document.getElementById('btn-constellation-environment');
-    const bloodBtn = document.getElementById('btn-constellation-biomarkers');
+    const biomarkersBtn = document.getElementById('btn-constellation-biomarkers');
     if (supBtn) supBtn.classList.toggle('active', activeType === 'supplements');
     if (habBtn) habBtn.classList.toggle('active', activeType === 'habits');
     if (exBtn) exBtn.classList.toggle('active', activeType === 'exercises');
     if (foodBtn) foodBtn.classList.toggle('active', activeType === 'foods');
     if (envBtn) envBtn.classList.toggle('active', activeType === 'environment');
-    if (bloodBtn) bloodBtn.classList.toggle('active', activeType === 'biomarkers');
+    if (biomarkersBtn) biomarkersBtn.classList.toggle('active', activeType === 'biomarkers');
   }
 
   function renderGroupFilters() {
@@ -263,7 +264,71 @@ document.addEventListener("DOMContentLoaded", () => {
       container.appendChild(btn);
     });
 
+    // Specimen chips (biomarkers constellation only — Issue #14)
+    if (currentTreeType === 'biomarkers' && typeof treeInstance.setSpecimenFilter === 'function') {
+      const specs = (window.AETHERIS.specimenTypes || []).filter(s => s.key !== 'all');
+      if (specs.length) {
+        const sep = document.createElement('span');
+        sep.className = mobile
+          ? 'block w-full text-[9px] uppercase tracking-widest text-violet-300/70 mt-2 mb-1 px-1'
+          : 'inline-flex items-center px-1 text-[9px] uppercase tracking-widest text-violet-300/70';
+        sep.textContent = 'Specimen';
+        container.appendChild(sep);
+
+        specs.forEach(spec => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.dataset.specimen = spec.key;
+          if (mobile) {
+            btn.className = 'specimen-chip w-full flex items-center gap-1 px-2 py-1 text-xs rounded-lg border transition font-medium tracking-wide';
+          } else {
+            btn.className = 'specimen-chip px-2.5 py-1 text-[10px] rounded-xl border transition flex items-center gap-1 font-medium tracking-wide';
+          }
+          btn.innerHTML = `<i class="fa-solid ${spec.icon} opacity-80"></i><span>${spec.label}</span>`;
+          btn.onclick = () => {
+            const on = treeInstance.enabledSpecimens?.has(spec.key);
+            const next = new Set(treeInstance.enabledSpecimens || []);
+            if (on) next.delete(spec.key);
+            else next.add(spec.key);
+            // Never allow empty — fall back to all
+            if (next.size === 0) {
+              treeInstance.setSpecimenFilter(['all']);
+            } else {
+              treeInstance.setSpecimenFilter([...next]);
+            }
+            syncSpecimenFilterChips();
+            const currentSel = treeInstance.selectedId
+              ? treeInstance.nodes.find(n => n.id === treeInstance.selectedId)
+              : null;
+            updateDetail(currentSel);
+          };
+          container.appendChild(btn);
+        });
+        syncSpecimenFilterChips();
+      }
+    }
+
     syncGroupFilterChips();
+  }
+
+  function syncSpecimenFilterChips() {
+    if (!treeInstance || !treeInstance.enabledSpecimens) return;
+    const containers = [
+      document.getElementById('group-filters'),
+      document.getElementById('mobile-group-filters')
+    ].filter(Boolean);
+    containers.forEach(container => {
+      container.querySelectorAll('.specimen-chip[data-specimen]').forEach(btn => {
+        const on = treeInstance.enabledSpecimens.has(btn.dataset.specimen);
+        btn.classList.toggle('border-violet-400/50', on);
+        btn.classList.toggle('bg-violet-400/15', on);
+        btn.classList.toggle('text-violet-200', on);
+        btn.classList.toggle('border-white/10', !on);
+        btn.classList.toggle('bg-[#0a0d1a]/60', !on);
+        btn.classList.toggle('text-white/35', !on);
+        btn.classList.toggle('line-through', !on);
+      });
+    });
   }
 
   function syncGroupFilterChips() {
@@ -736,14 +801,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const exBtn = document.getElementById('btn-constellation-exercises');
   const foodBtn = document.getElementById('btn-constellation-foods');
   const envBtn = document.getElementById('btn-constellation-environment');
-  const bloodBtn = document.getElementById('btn-constellation-biomarkers');
+  const biomarkersBtn = document.getElementById('btn-constellation-biomarkers');
 
   if (supBtn) supBtn.onclick = () => switchConstellation('supplements');
   if (habBtn) habBtn.onclick = () => switchConstellation('habits');
   if (exBtn) exBtn.onclick = () => switchConstellation('exercises');
   if (foodBtn) foodBtn.onclick = () => switchConstellation('foods');
   if (envBtn) envBtn.onclick = () => switchConstellation('environment');
-  if (bloodBtn) bloodBtn.onclick = () => switchConstellation('biomarkers');
+  if (biomarkersBtn) biomarkersBtn.onclick = () => switchConstellation('biomarkers');
 
   // Mark initial active state
   updateConstellationButtons('supplements');
@@ -776,7 +841,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  // Ensure the blood button label and logic uses 'biomarkers' key (Issue #14 refactor)
+  // Biomarkers constellation button (Issue #14)
   // Keep DOM id for now to minimize HTML changes; text can be updated in HTML separately if desired.
 
   // Shared inspector renderer used by BOTH the desktop left panel AND the mobile bottom sheet (Issue #1).
@@ -839,7 +904,7 @@ document.addEventListener("DOMContentLoaded", () => {
     container.innerHTML = `
       <div class="text-left w-full">
         <div class="text-2xl font-semibold title-font tracking-tight ${isNegative ? 'text-red-300' : ''}">${node.name}</div>
-        <div class="text-xs uppercase tracking-widest ${isNegative ? 'text-red-400' : 'text-amber-400'} mt-1">${node.cat.toUpperCase()} • ${node.short} ${isNegative ? '• HARMFUL' : ''}</div>
+        <div class="text-xs uppercase tracking-widest ${isNegative ? 'text-red-400' : 'text-amber-400'} mt-1">${node.cat.toUpperCase()} • ${node.short}${(node._isBiomarker || node._isBlood) && node.specimen_type ? ' • ' + String(node.specimen_type).toUpperCase() : ''}${isNegative ? ' • HARMFUL' : ''}</div>
         
         <div class="mt-4 grid grid-cols-3 gap-2 text-sm">
           <div class="bg-[#0a0d1a] p-2 rounded-xl">${scoreLabel} <span class="font-mono ${scoreColor}">${node.longevity}</span></div>
@@ -850,7 +915,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ${(() => {
           const p = personalData || {};
           const hasAny = Object.keys(p).some(k => p[k] !== '' && p[k] != null);
-          if (isNegative || node.impact === 'negative' || node._isBlood || !hasAny) return '';
+          if (isNegative || node.impact === 'negative' || (node._isBiomarker || node._isBlood) || !hasAny) return '';
           try {
             const ps = typeof personalizedScore === 'function' ? personalizedScore(node, p) : 0;
             if (ps) {
@@ -867,8 +932,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         <div class="mt-3 text-xs text-white/80 leading-snug">${node.blurb}</div>
 
-        ${node._isBlood ? `
+        ${(node._isBiomarker || node._isBlood) ? `
           <div class="mt-2 grid grid-cols-2 gap-1 text-[10px]">
+            <div class="bg-[#0a0d1a] p-1 rounded">Specimen: <span class="font-mono text-violet-300 uppercase">${node.specimen_type || 'blood'}</span></div>
+            <div class="bg-[#0a0d1a] p-1 rounded">Status: <span class="font-mono ${node.status==='optimal'?'text-emerald-300':(node.status==='high'?'text-red-300':'text-amber-300')}">${(node.status||'—').toUpperCase()}</span></div>
             <div class="bg-[#0a0d1a] p-1 rounded">Current: <span class="font-mono text-sky-300">${node.current ?? '?'} ${node.unit || ''}</span></div>
             <div class="bg-[#0a0d1a] p-1 rounded">Optimal: <span class="font-mono text-emerald-300">${node.optimal || node.blueprint || '—'}</span></div>
             ${node.age_impact != null ? `<div class="bg-[#0a0d1a] p-1 rounded col-span-2">Age impact: <span class="font-mono ${node.age_impact > 0 ? 'text-red-300' : 'text-emerald-300'}">${node.age_impact > 0 ? '+' : ''}${node.age_impact} yrs</span></div>` : ''}
@@ -883,7 +950,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ${(() => {
           const p = personalData || {};
           const hasAny = Object.keys(p).some(k => p[k] !== '' && p[k] != null);
-          if (isNegative || node.impact === 'negative' || node._isBlood) return '';
+          if (isNegative || node.impact === 'negative' || (node._isBiomarker || node._isBlood)) return '';
           try {
             const ps = typeof personalizedScore === 'function' ? personalizedScore(node, p) : null;
             if (hasAny && ps) {
@@ -988,7 +1055,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (shareBtn) {
       shareBtn.onclick = () => {
         const isEnv = node._isEnvironment || node.cat && ['air-pollution','heavy-metals'].includes(node.cat);
-        const prefix = isEnv ? 'Avoid exposure to' : (node._isBlood ? 'Track biomarker' : node.name + ' scores');
+        const prefix = isEnv ? 'Avoid exposure to' : ((node._isBiomarker || node._isBlood) ? 'Track biomarker' : node.name + ' scores');
         const score = node.vitality || node.longevity || node.current || '';
         const txt = `${prefix} ${node.name} ${score ? '— ' + score : ''} on AETHERIS. ${node.blurb ? node.blurb.slice(0,120) : ''} aetheris.app 🧬`;
         navigator.clipboard?.writeText(txt).catch(()=>{});

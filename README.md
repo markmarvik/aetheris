@@ -6,12 +6,13 @@ Refactored multi-file version of the original single-file AETHERIS experience.
 
 **Map UX (multi-constellation):**
 - Body-centric canvas: central human figure with nodes in organ rings
-- Constellations: Supplements, Habits, Exercises, Foods, Environment, Biomarkers
+- Constellations: Supplements, Habits, Exercises, Foods, Environment, **Biomarkers**
+- Biomarkers cover blood + urine + saliva (+ other) via `specimen_type` (Issue #14)
 - **Layered anatomy** (Issue #16 Phase 1): independent opacity for base / organs / skeleton / muscles + view presets
 - HiDPI rendering via `CanvasViewport` (sharp nodes and labels)
 - 2D pan (drag), zoom (wheel / +/-), recenter (`r`)
 - Dynamic layout: larger nodes closer to body, collision + body keep-out settling
-- Category group toggles on the map
+- Category group toggles on the map (+ specimen filters for Biomarkers)
 - `HoverPopup` on hover and click (pinned until click away or Esc)
 - Sidebar detail panel + Gorkipedia explorer modal
 
@@ -31,14 +32,15 @@ npm run dev
 | Area | Location |
 |------|----------|
 | Entry + input | [`src/main.js`](src/main.js) |
-| Tree classes | [`src/trees/SupplementTree.js`](src/trees/SupplementTree.js) (+ Habits / Exercise / Foods / Environment / BiomarkerTree) |
+| Tree classes | [`src/trees/SupplementTree.js`](src/trees/SupplementTree.js), Habits / Exercise / Foods / Environment / [`BiomarkerTree.js`](src/trees/BiomarkerTree.js) |
 | Layered anatomy | [`src/core/AnatomyRenderer.js`](src/core/AnatomyRenderer.js) + body draw in SupplementTree |
 | HiDPI canvas | [`src/core/CanvasViewport.js`](src/core/CanvasViewport.js) |
-| Data | [`src/data/*.js`](src/data/) |
+| Data | [`src/data/supplements.js`](src/data/supplements.js), habits, exercises, foods, environment, [`biomarkers.js`](src/data/biomarkers.js) |
 | Hover card | [`src/components/HoverPopup.js`](src/components/HoverPopup.js) |
 | Deep dive modal | [`src/components/ExplorerModal.js`](src/components/ExplorerModal.js) |
 | Legacy layout helper | [`src/core/LayoutEngine.js`](src/core/LayoutEngine.js) (polar prototype; tree uses `_settleNodePositions`) |
 | Optional sidebar SVG body | [`src/components/OrganDiagram.js`](src/components/OrganDiagram.js) (not wired; body drawn on canvas) |
+| Product plans | [`docs/IMPROVEMENT_PLAN.md`](docs/IMPROVEMENT_PLAN.md), [`docs/MONETIZATION_ROADMAP.md`](docs/MONETIZATION_ROADMAP.md) |
 
 ## Building
 
@@ -109,10 +111,12 @@ Replace placeholders with transparent PNGs (same scale language as existing orga
 
 ## Roadmap
 
-- ~~Touch/pointer pan for mobile~~
+- ~~Touch/pointer pan for mobile~~ (shipped)
 - Zoom toward cursor polish
-- ~~More constellations~~ (Exercise, Foods, Environment, Biomarkers)
-- Layered anatomy Phase 2: photoreal spine/kidneys/MSK art + limb detail (#16)
+- ~~More constellations~~ (Exercise, Foods, Environment, Biomarkers shipped)
+- ~~Layered anatomy Phase 1~~ (opacity presets + placeholders) — #16
+- Layered anatomy Phase 2: photoreal spine/kidneys/MSK art + limb detail
 - `OrganSystem` cumulative organ impact across trees
+- See [`docs/IMPROVEMENT_PLAN.md`](docs/IMPROVEMENT_PLAN.md) and [`docs/MONETIZATION_ROADMAP.md`](docs/MONETIZATION_ROADMAP.md)
 
 Original monolith reference: `/home/tux/aetheris-longevity-tree.html`

@@ -1,11 +1,11 @@
 /**
- * biomarkers.js  (data layer for BloodTree / Biomarker constellation)
- * Comprehensive longevity biomarker dataset
- * Inspired by Bryan Johnson Blueprint + Siim Land protocols
- * Supports blood + urine (and future saliva/other) via specimen_type
+ * biomarkers.js — longevity biospecimen markers (blood + urine + saliva + other)
+ * Inspired by Bryan Johnson Blueprint + Siim Land protocols.
+ * Each marker has specimen_type: "blood" | "urine" | "saliva" | "other".
+ * See GitHub Issue #14.
  */
 
-export const blood = [
+export const biomarkers = [
   // ========== INFLAMMATION ==========
   {
     id: "hs_crp",
@@ -763,10 +763,90 @@ export const blood = [
     blurb: "Marker of oxidative stress and DNA damage. Urine test. Lower is better for longevity.",
     links: ["antioxidants", "sleep", "exercise", "reduce_toxin_exposure"],
     evidence: "4/5"
+  },
+
+  // ========== SALIVA (diurnal / hormone metabolites) ==========
+  {
+    id: "saliva_cortisol_am",
+    name: "Salivary Cortisol (Morning)",
+    short: "Cortisol AM (saliva)",
+    cat: "hormones",
+    specimen_type: "saliva",
+    current: 0.55,
+    unit: "µg/dL",
+    optimal: "0.3–0.7",
+    blueprint: "0.35–0.55",
+    age_impact: 1.0,
+    status: "optimal",
+    organs: ["adrenal", "brain"],
+    mechanisms: ["hpa_axis", "circadian_rhythm"],
+    risks: ["chronic_stress", "adrenal_dysregulation", "sleep_disruption"],
+    blurb: "Morning salivary cortisol reflects HPA axis tone without a blood draw. Flattened diurnal curves track with burnout and poor recovery.",
+    links: ["sleep", "ashwagandha", "stress_management", "light_exposure"],
+    evidence: "4/5"
+  },
+  {
+    id: "saliva_cortisol_pm",
+    name: "Salivary Cortisol (Evening)",
+    short: "Cortisol PM (saliva)",
+    cat: "hormones",
+    specimen_type: "saliva",
+    current: 0.18,
+    unit: "µg/dL",
+    optimal: "< 0.1",
+    blueprint: "< 0.08",
+    age_impact: 1.2,
+    status: "high",
+    organs: ["adrenal", "brain"],
+    mechanisms: ["hpa_axis", "circadian_rhythm"],
+    risks: ["insomnia", "visceral_fat", "immune_suppression"],
+    blurb: "Elevated evening salivary cortisol blunts sleep architecture and recovery. Useful companion to morning reading for diurnal slope.",
+    links: ["sleep_hygiene", "magnesium", "dim_evening_light", "meditation"],
+    evidence: "4/5"
+  },
+  {
+    id: "saliva_dhea",
+    name: "Salivary DHEA",
+    short: "DHEA (saliva)",
+    cat: "hormones",
+    specimen_type: "saliva",
+    current: 180,
+    unit: "pg/mL",
+    optimal: "age-adjusted mid-range",
+    blueprint: "upper mid-range for age",
+    age_impact: 0.8,
+    status: "suboptimal",
+    organs: ["adrenal", "endocrine"],
+    mechanisms: ["adrenal_androgen", "stress_resilience"],
+    risks: ["low_resilience", "libido_decline", "immune_shift"],
+    blurb: "Salivary DHEA (often as DHEA-S ratio with cortisol) is a non-invasive window into adrenal androgen tone used in longevity panels.",
+    links: ["resistance_training", "sleep", "stress_reduction"],
+    evidence: "3/5"
+  },
+
+  // ========== ADDITIONAL URINE ==========
+  {
+    id: "urine_heavy_metals_panel",
+    name: "Urine Heavy Metals (provoked / unprovoked)",
+    short: "Urine Metals",
+    cat: "other",
+    specimen_type: "urine",
+    current: "elevated Hg",
+    unit: "µg/g creat",
+    optimal: "within lab ref",
+    blueprint: "low / undetectable",
+    age_impact: 1.6,
+    status: "suboptimal",
+    organs: ["kidney", "brain", "liver"],
+    mechanisms: ["toxic_metal_burden", "oxidative_stress"],
+    risks: ["neurotoxicity", "renal_stress", "mitochondrial_damage"],
+    blurb: "Urine metal panels (mercury, lead, cadmium, arsenic) are common in serious longevity toxin workups. Interpret with exposure history.",
+    links: ["reduce_toxin_exposure", "sauna", "hydration", "selenium"],
+    evidence: "3/5"
   }
 ];
 
-export const bloodCategories = [
+export const biomarkerCategories = [
   { key: "all", label: "ALL", icon: "fa-vial" },
   { key: "inflammation", label: "INFLAMMATION", icon: "fa-fire" },
   { key: "metabolic", label: "METABOLIC", icon: "fa-chart-line" },
@@ -783,7 +863,7 @@ export const bloodCategories = [
  * Computes a visual/layout score for a biomarker node.
  * Higher age_impact → lower score (less favorable positioning).
  */
-export function computeBloodScore(marker) {
+export function computeBiomarkerScore(marker) {
   if (!marker) return 50;
   const ageImp = Math.abs(marker.age_impact || 0);
   return Math.max(20, Math.min(95, 70 - ageImp * 8));
@@ -797,3 +877,17 @@ export function calculateStatus(marker) {
   // Placeholder for future dynamic logic
   return marker.status || "unknown";
 }
+
+/** Specimen type filter chips for the constellation UI. */
+export const specimenTypes = [
+  { key: "all", label: "ALL SPECIMENS", icon: "fa-vial" },
+  { key: "blood", label: "BLOOD", icon: "fa-droplet" },
+  { key: "urine", label: "URINE", icon: "fa-flask" },
+  { key: "saliva", label: "SALIVA", icon: "fa-mouth" },
+  { key: "other", label: "OTHER", icon: "fa-ellipsis" }
+];
+
+// Backward-compatible aliases (remove after callers migrate)
+export const blood = biomarkers;
+export const bloodCategories = biomarkerCategories;
+export const computeBloodScore = computeBiomarkerScore;
