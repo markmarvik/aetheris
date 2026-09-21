@@ -1,6 +1,6 @@
 # Aetheris Roadmap → v1.0
 
-**Baseline:** v0.3.4 (explode node spread; v0.3.3 organ explode + organ→node filter; v0.3.2 tip / deep-link / footer) · live: https://markmarvik.github.io/aetheris/  
+**Baseline:** v0.3.5 (explode organ spacing; v0.3.4 node spread; v0.3.3 organ explode + filter; v0.3.2 tip / deep-link / footer) · live: https://markmarvik.github.io/aetheris/  
 **Goal:** Ship a **v1.0** web product people can explore, personalize, and (optionally) pay for — without native apps or a custom billing backend.
 
 Related: [`IMPROVEMENT_PLAN.md`](./IMPROVEMENT_PLAN.md), [`MONETIZATION_ROADMAP.md`](./MONETIZATION_ROADMAP.md).
@@ -56,6 +56,7 @@ Educational framing only — no medical claims.
 - [x] Print protocol includes organ coverage scores — v0.3.1
 - [x] Organ explode: hover/tap body → spread organs; click organ → green/red linked nodes — v0.3.3
 - [x] Explode node spread: constellation nodes ease radially outward with organs (closer nodes move more) — v0.3.4
+- [x] Explode organ spacing: staggered radii + even-ish angles so organs don’t overlap when expanded — v0.3.5
 - [ ] Tie into Anatomy layer highlights where cheap (further polish)
 
 **Exit:** Stack → organ impact is visible and explainable.
@@ -114,6 +115,7 @@ Educational framing only — no medical claims.
 | 0.3.2 | First-run tip + `?c=` deep-link + footer version; GH issues for remaining v1 gaps |
 | 0.3.3 | Organ explode + organ→node filter |
 | 0.3.4 | Explode spreads constellation nodes radially with organs |
+| 0.3.5 | Explode organ spacing (no sprite stack) + node-push retune |
 | 0.4.x | Anatomy Phase 2 art |
 | 0.5.x | Live checkout URL + stronger Pro perks |
 | 0.9.x | Analytics live + polish |

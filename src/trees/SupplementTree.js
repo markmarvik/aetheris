@@ -1026,8 +1026,9 @@ export class SupplementTree extends BaseTree {
       this._organDrawPositions[key] = { x: ax, y: ay };
 
       const thisScale = globalOrganScale * (cfg.scale ?? 1.0);
-      // Slight enlarge when exploded so organs read as tap targets
-      const explodeBoost = 1 + explodeP * 0.18;
+      // Slight shrink when exploded — large PNG footprints clear neighbors better
+      // (hit targets stay generous via ORGAN_HIT_RADIUS).
+      const explodeBoost = 1 - explodeP * 0.06;
 
       const isFilter = filterKey === key;
       const isHoverOrg = hoverOrg === key;
