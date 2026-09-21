@@ -12,6 +12,10 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="AETHERIS • Longevity Constellation">
   <meta name="twitter:description" content="Interactive map of supplements, habits, exercises &amp; foods for human longevity.">
+
+  <!-- Analytics: drop Plausible (or GA4) here when ready. Example:
+       <script defer data-domain="markmarvik.github.io" src="https://plausible.io/js/script.js"></script>
+       Then track() in src/core/Analytics.js forwards to window.plausible. -->
   
   <!-- Silence favicon 404 during local dev -->
   <link rel="icon" href="data:,">
@@ -25,6 +29,30 @@
     }
     .popup-blink {
       animation: popup-blink 3s infinite;
+    }
+    /* Printable My Stack protocol — soft Pro gate (Free still prints with watermark) */
+    #mystack-print-sheet { display: none; }
+    @media print {
+      body * { visibility: hidden !important; }
+      #mystack-print-sheet, #mystack-print-sheet * { visibility: visible !important; }
+      #mystack-print-sheet {
+        display: block !important;
+        position: absolute;
+        left: 0; top: 0;
+        width: 100%;
+        padding: 24px;
+        color: #111;
+        background: #fff;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #mystack-print-sheet .print-watermark {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        font-size: 14px;
+        color: #999;
+        font-weight: 600;
+      }
     }
   </style>
 </head>
@@ -238,8 +266,18 @@
               <i id="mystack-panel-icon" class="fa-solid fa-chevron-down text-[9px]"></i>
             </button>
             <div id="mystack-panel" class="hidden mt-1 flex flex-col gap-1">
+              <div id="mystack-soft-limit-warn"
+                   class="hidden px-1.5 py-1 rounded-lg border border-amber-400/35 bg-amber-400/10 text-amber-100/90 text-[9px] leading-snug">
+                Over free soft limit (<span id="mystack-limit-n">15</span>). Still editable —
+                <button type="button" id="mystack-pricing-hint" class="underline text-amber-200 hover:text-amber-100">Pro coming soon</button>
+              </div>
+              <div id="mystack-empty"
+                   class="hidden px-1.5 py-2 rounded-lg border border-dashed border-white/15 text-white/40 text-[9px] leading-snug text-center">
+                <div class="text-white/55 mb-0.5">Your stack is empty</div>
+                Select a node → <span class="text-amber-200/80">Add to My Stack</span>
+              </div>
               <div id="mystack-list"
-                   class="max-h-36 overflow-y-auto flex flex-col gap-0.5 empty:hidden"></div>
+                   class="max-h-48 overflow-y-auto flex flex-col gap-1"></div>
               <button id="mystack-highlight-btn"
                       type="button"
                       class="w-full text-left px-2 py-1 rounded-lg border border-white/10 text-white/70 hover:bg-white/5 transition"
@@ -247,16 +285,39 @@
                 <i class="fa-solid fa-eye text-amber-300/80 mr-1"></i>
                 <span id="mystack-highlight-label">Highlight off</span>
               </button>
-              <button id="mystack-export-btn" type="button"
-                      class="w-full px-1.5 py-1 rounded-lg border border-white/10 text-white/70 hover:bg-white/5"
-                      title="Download stack JSON">
-                <i class="fa-solid fa-download"></i> Export JSON
-              </button>
-              <label class="w-full px-1.5 py-1 rounded-lg border border-white/10 text-white/70 hover:bg-white/5 cursor-pointer flex items-center gap-1"
-                     title="Import stack JSON (replace)">
-                <i class="fa-solid fa-upload"></i> Import JSON
+              <div class="grid grid-cols-2 gap-1">
+                <button id="mystack-export-btn" type="button"
+                        class="px-1.5 py-1 rounded-lg border border-white/10 text-white/70 hover:bg-white/5"
+                        title="Download stack JSON">
+                  <i class="fa-solid fa-download"></i> Export
+                </button>
+                <button id="mystack-import-btn" type="button"
+                        class="px-1.5 py-1 rounded-lg border border-white/10 text-white/70 hover:bg-white/5"
+                        title="Import stack JSON">
+                  <i class="fa-solid fa-upload"></i> Import
+                </button>
                 <input id="mystack-import-input" type="file" accept="application/json,.json" class="hidden" />
-              </label>
+              </div>
+              <div id="mystack-import-mode" class="flex items-center gap-2 px-1 text-[9px] text-white/50">
+                <label class="flex items-center gap-1 cursor-pointer" title="Replace current stack">
+                  <input type="radio" name="mystack-import-mode" value="replace" checked class="accent-amber-400" /> Replace
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer" title="Merge into current stack">
+                  <input type="radio" name="mystack-import-mode" value="merge" class="accent-amber-400" /> Merge
+                </label>
+              </div>
+              <div class="grid grid-cols-2 gap-1">
+                <button id="mystack-share-btn" type="button"
+                        class="px-1.5 py-1 rounded-lg border border-white/10 text-white/70 hover:bg-white/5"
+                        title="Download PNG share card">
+                  <i class="fa-solid fa-image"></i> Share PNG
+                </button>
+                <button id="mystack-print-btn" type="button"
+                        class="px-1.5 py-1 rounded-lg border border-white/10 text-white/70 hover:bg-white/5"
+                        title="Printable protocol (window.print)">
+                  <i class="fa-solid fa-print"></i> Print
+                </button>
+              </div>
               <button id="mystack-clear-btn" type="button"
                       class="w-full px-2 py-1 rounded-lg border border-red-400/25 text-red-300/80 hover:bg-red-950/40"
                       title="Remove all nodes from stack">
@@ -434,6 +495,75 @@
         <div>
           <button onclick="window.AETHERIS?.modal?.close()" class="px-5 py-1.5 rounded-2xl bg-white/10 hover:bg-white/15">Close Codex</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Soft footer: feedback + pricing stubs (no medical claims) -->
+  <footer id="app-footer"
+          class="fixed bottom-2 left-2 z-[110] pointer-events-auto flex flex-wrap items-center gap-2 text-[10px] text-white/45 max-md:bottom-[max(8px,env(safe-area-inset-bottom))] max-md:left-2">
+    <button type="button" id="feedback-btn"
+            class="px-2 py-1 rounded-full border border-white/15 bg-[#0a0d1a]/80 hover:bg-white/10 hover:text-amber-200 transition"
+            title="Send feedback">
+      <i class="fa-regular fa-message mr-1"></i>Feedback
+    </button>
+    <button type="button" id="pricing-btn"
+            class="px-2 py-1 rounded-full border border-white/15 bg-[#0a0d1a]/80 hover:bg-white/10 hover:text-amber-200 transition"
+            title="Aetheris Pro">
+      <i class="fa-solid fa-crown mr-1 text-amber-400/70"></i>Pro
+    </button>
+    <span class="text-white/25 hidden sm:inline">Educational map only</span>
+  </footer>
+
+  <!-- Hidden printable My Stack protocol sheet (shown only via @media print) -->
+  <div id="mystack-print-sheet" aria-hidden="true">
+    <h1 style="font-size:22px;margin:0 0 4px;">AETHERIS · My Stack Protocol</h1>
+    <p id="mystack-print-meta" style="font-size:12px;color:#555;margin:0 0 16px;"></p>
+    <table id="mystack-print-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr>
+          <th style="text-align:left;border-bottom:1px solid #ccc;padding:6px;">Name</th>
+          <th style="text-align:left;border-bottom:1px solid #ccc;padding:6px;">Constellation</th>
+          <th style="text-align:left;border-bottom:1px solid #ccc;padding:6px;">Slot</th>
+          <th style="text-align:left;border-bottom:1px solid #ccc;padding:6px;">Notes</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p style="font-size:11px;color:#666;margin-top:20px;">Educational framing only — not medical advice.</p>
+    <div id="mystack-print-watermark" class="print-watermark"></div>
+  </div>
+
+  <!-- Pricing modal stub (Coming soon / checkout link placeholder) -->
+  <div id="pricing-modal" class="hidden fixed inset-0 z-[300] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="pricing-modal-title">
+    <div class="w-full max-w-md rounded-3xl border border-amber-400/25 bg-[#0a0d1a] p-5 shadow-2xl">
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <div id="pricing-modal-title" class="text-lg font-semibold text-amber-100">Aetheris Pro</div>
+          <div class="text-[11px] text-white/45 mt-0.5">Coming soon · checkout link placeholder</div>
+        </div>
+        <button type="button" id="pricing-modal-close" class="text-white/50 hover:text-white text-2xl leading-none px-1" aria-label="Close">×</button>
+      </div>
+      <ul class="text-xs text-white/70 space-y-1.5 mb-4 list-disc pl-4">
+        <li>Unlimited My Stack (free soft-limits lift)</li>
+        <li>Protocol print / share without Free watermark</li>
+        <li>Saved lab filters &amp; early anatomy extras (roadmap)</li>
+      </ul>
+      <p class="text-[10px] text-white/40 mb-3">No custom billing backend — Lemon Squeezy / Stripe Payment Link when doors open. Soft unlock via local license key for founding buyers.</p>
+      <div class="flex flex-col gap-2">
+        <a id="pricing-checkout-link" href="#pricing-coming-soon"
+           class="block text-center px-3 py-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20 text-sm">
+          Checkout — Coming soon
+        </a>
+        <label class="text-[10px] text-white/45 flex flex-col gap-1">
+          Dev / founding license key
+          <input id="pricing-license-input" type="text" placeholder="paste key → aetheris-pro-key"
+                 class="px-2 py-1.5 rounded-xl bg-black/40 border border-white/15 text-white/80 text-xs" />
+        </label>
+        <button type="button" id="pricing-apply-key"
+                class="px-3 py-1.5 rounded-2xl border border-white/15 text-white/70 hover:bg-white/5 text-xs">
+          Apply key
+        </button>
       </div>
     </div>
   </div>
