@@ -767,47 +767,75 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (!pointerDown || (activePointerId !== null && e.pointerId !== activePointerId)) return;
-
-    const threshold = (activePointerType === 'touch' || activePointerType === 'pen')
-      ? DRAG_THRESHOLD_TOUCH
-      : DRAG_THRESHOLD_MOUSE;
-    const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
-    if (!isPanning && moved > threshold) {
-      isPanning = true;
-      if (treeInstance) treeInstance._isPanning = true;
-      hoverPopup.hide();
-      canvas.style.cursor = 'grabbing';
+    // Drag / pan only while this pointer is down
+    if (pointerDown && (activePointerId === null || e.pointerId === activePointerId)) {
+      const threshold = (activePointerType === 'touch' || activePointerType === 'pen')
+        ? DRAG_THRESHOLD_TOUCH
+        : DRAG_THRESHOLD_MOUSE;
+      const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
+      if (!isPanning && moved > threshold) {
+        isPanning = true;
+        if (treeInstance) treeInstance._isPanning = true;
+        hoverPopup.hide();
+        canvas.style.cursor = 'grabbing';
+      }
+      if (isPanning) {
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        const now = performance.now();
+        const dt = Math.max(8, Math.min(48, now - (lastMoveTs || now)));
+        // EMA velocity in px/frame (~16ms) for stable inertia on release
+        const frameScale = 16 / dt;
+        const sampleVx = dx * frameScale;
+        const sampleVy = dy * frameScale;
+        velX = velX * 0.65 + sampleVx * 0.35;
+        velY = velY * 0.65 + sampleVy * 0.35;
+        lastMoveTs = now;
+        lastPanDx = dx;
+        lastPanDy = dy;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        queuePan(dx, dy);
+        return;
+      }
+    } else if (pointerDown) {
+      return; // other pointer id while down
     }
-    if (isPanning) {
-      const dx = e.clientX - lastX;
-      const dy = e.clientY - lastY;
-      const now = performance.now();
-      const dt = Math.max(8, Math.min(48, now - (lastMoveTs || now)));
-      // EMA velocity in px/frame (~16ms) for stable inertia on release
-      const frameScale = 16 / dt;
-      const sampleVx = dx * frameScale;
-      const sampleVy = dy * frameScale;
-      velX = velX * 0.65 + sampleVx * 0.35;
-      velY = velY * 0.65 + sampleVy * 0.35;
-      lastMoveTs = now;
-      lastPanDx = dx;
-      lastPanDy = dy;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      queuePan(dx, dy);
+
+    // Hover logic (mouse, not panning) — also drives organ explode on body hover
+    if (isPanning || isPinching) return;
+    if (e.pointerType && e.pointerType !== 'mouse') return;
+
+    const { x: mx, y: my } = canvasPointer(e);
+
+    if (typeof treeInstance.handleBodyHover === 'function') {
+      treeInstance.handleBodyHover(mx, my);
+    }
+
+    // Prefer organ cursor when exploded organs are under pointer
+    let organHit = null;
+    if (treeInstance.organExplode && treeInstance.organExplode.progress > 0.35
+        && typeof treeInstance.hitTestOrgan === 'function') {
+      const w = treeInstance.screenToWorld(mx, my);
+      organHit = treeInstance.hitTestOrgan(w.x, w.y, { requireExploded: false });
+    }
+
+    if (organHit) {
+      treeInstance.setHover(null);
+      canvas.style.cursor = 'pointer';
+      hoverPopup.hide();
       return;
     }
 
-    // Hover logic (non-pan, mouse only feels natural)
-    const { x: mx, y: my } = canvasPointer(e);
     const hit = treeInstance.getNodeAt(mx, my);
     treeInstance.setHover(hit ? hit.id : null);
     if (hit) {
       canvas.style.cursor = 'pointer';
       if (!isMobileViewport()) hoverPopup.show(hit, e.clientX, e.clientY);
     } else {
-      canvas.style.cursor = 'crosshair';
+      const overBody = typeof treeInstance.hitTestBody === 'function'
+        && (() => { const w = treeInstance.screenToWorld(mx, my); return treeInstance.hitTestBody(w.x, w.y); })();
+      canvas.style.cursor = overBody ? 'pointer' : 'crosshair';
       hoverPopup.hide();
     }
   });
@@ -887,11 +915,35 @@ document.addEventListener("DOMContentLoaded", () => {
         e.clientX != null
       ) {
         if (isEventOverMapChrome(e)) return;
+        // Prevent the synthetic mouse click from double-firing body explode / selection
+        suppressNextClick = true;
         const fake = { clientX: e.clientX, clientY: e.clientY };
         const { x: mx, y: my } = canvasPointer(fake);
+
+        // Same priority as click: organ → node → body → empty
+        if (treeInstance && typeof treeInstance.trySelectOrganAt === 'function') {
+          const org = treeInstance.trySelectOrganAt(mx, my);
+          if (org) {
+            hoverPopup.hide();
+            return;
+          }
+        }
         const hit = treeInstance.getNodeAt(mx, my);
-        handleNodeSelection(hit || null);
-        if (!hit) hoverPopup.hide();
+        if (hit) {
+          handleNodeSelection(hit);
+          return;
+        }
+        if (treeInstance && typeof treeInstance.tryToggleBodyExplode === 'function') {
+          if (treeInstance.tryToggleBodyExplode(mx, my)) {
+            hoverPopup.hide();
+            return;
+          }
+        }
+        if (treeInstance && typeof treeInstance.collapseOrganExplodeIfOpen === 'function') {
+          treeInstance.collapseOrganExplodeIfOpen();
+        }
+        handleNodeSelection(null);
+        hoverPopup.hide();
       }
 
       velX = 0;
@@ -2296,6 +2348,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   canvas.addEventListener("mouseleave", () => {
     hoverPopup.hide();
+    // Collapse organs on leave unless an organ filter is pinning the explode state
+    if (treeInstance?.organExplode && !treeInstance.organExplode.activeOrganFilter) {
+      if (treeInstance.organExplode.setExpanded(false)) treeInstance._scheduleDraw();
+    }
+    if (treeInstance?.organExplode) treeInstance.organExplode.hoveredOrgan = null;
   });
 
   canvas.addEventListener("click", (e) => {
@@ -2308,10 +2365,37 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isEventOverMapChrome(e)) return;
 
     const { x: mx, y: my } = canvasPointer(e);
-    const hit = treeInstance.getNodeAt(mx, my);
 
-    handleNodeSelection(hit || null);
-    if (!hit) hoverPopup.hide();
+    // 1) Exploded organ → filter (does not steal node clicks when collapsed)
+    if (treeInstance && typeof treeInstance.trySelectOrganAt === 'function') {
+      const org = treeInstance.trySelectOrganAt(mx, my);
+      if (org) {
+        hoverPopup.hide();
+        return;
+      }
+    }
+
+    // 2) Constellation node
+    const hit = treeInstance.getNodeAt(mx, my);
+    if (hit) {
+      handleNodeSelection(hit);
+      return;
+    }
+
+    // 3) Body silhouette → explode / collapse
+    if (treeInstance && typeof treeInstance.tryToggleBodyExplode === 'function') {
+      if (treeInstance.tryToggleBodyExplode(mx, my)) {
+        hoverPopup.hide();
+        return;
+      }
+    }
+
+    // 4) Empty map → collapse organ explode + clear selection
+    if (treeInstance && typeof treeInstance.collapseOrganExplodeIfOpen === 'function') {
+      treeInstance.collapseOrganExplodeIfOpen();
+    }
+    handleNodeSelection(null);
+    hoverPopup.hide();
   });
 
   // === Keyboard shortcuts (polish + power user delight) ===
@@ -2319,6 +2403,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!treeInstance) return;
     if (e.key === 'Escape') {
       hoverPopup.hide();
+      if (treeInstance && typeof treeInstance.clearOrganExplode === 'function') {
+        treeInstance.clearOrganExplode();
+      }
       handleNodeSelection(null);
     } else if (e.key === '+' || e.key === '=') {
       stopInertia && stopInertia();
