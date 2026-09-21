@@ -74,9 +74,10 @@ A GitHub Actions workflow builds the project with **Node 24** on every push to `
 - `public/.nojekyll` is present to prevent Jekyll processing.
 - Workflow uses `actions/setup-node` (v24), `npm ci`, `npm run build`, and the official `actions/deploy-pages`.
 
-**One-time setup in the GitHub repo UI:**
+**One-time setup in the GitHub repo UI (required):**
 1. Go to **Settings → Pages**
-2. Under "Build and deployment", set **Source** to **GitHub Actions**
+2. Under "Build and deployment", set **Source** to **GitHub Actions** (not "Deploy from a branch")
+3. If Source is "Deploy from a branch" / `main` `/`, the live site serves raw `index.html` + `src/main.js` and looks like HTML-only — switch to Actions and re-run this workflow
 
 After the setting change, push to `main` (or run the workflow manually from the Actions tab). The site should update within a couple of minutes.
 
