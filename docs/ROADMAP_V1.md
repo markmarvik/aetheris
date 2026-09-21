@@ -1,6 +1,6 @@
 # Aetheris Roadmap → v1.0
 
-**Baseline:** v0.3.0 (My Stack depth + Free/Pro soft scaffold) · live: https://markmarvik.github.io/aetheris/  
+**Baseline:** v0.3.1 (touch pan polish + static pricing + print protocol; OrganSystem + zoom on v0.3.0) · live: https://markmarvik.github.io/aetheris/  
 **Goal:** Ship a **v1.0** web product people can explore, personalize, and (optionally) pay for — without native apps or a custom billing backend.
 
 Related: [`IMPROVEMENT_PLAN.md`](./IMPROVEMENT_PLAN.md), [`MONETIZATION_ROADMAP.md`](./MONETIZATION_ROADMAP.md).
@@ -26,11 +26,12 @@ Educational framing only — no medical claims.
 
 ## Phases (ordered)
 
-### Phase A — Mobile polish (now → ~0.2.x)
+### Phase A — Mobile polish (now → ~0.2.x / 0.3.x)
 
 - [x] My Stack bottom-sheet button clicks (bubble-phase `stopPropagation`) — v0.2.7
 - [x] Anatomy mobile fixed bottom sheet / overlay — v0.2.8
-- [ ] Touch pan polish + zoom-toward-cursor
+- [x] Zoom-toward-cursor (wheel) + pinch clamp polish — v0.3.0
+- [x] Touch pan polish (RAF coalesce, inertia on release, chrome ignore, pinch→one-finger handoff) — v0.3.1
 - [ ] Smoke pass on live Pages (iOS Safari + Android Chrome): Anatomy, My Stack, inspector sheet
 
 **Exit:** Phone map is usable end-to-end without clipped rails or dead taps.
@@ -46,9 +47,10 @@ Educational framing only — no medical claims.
 
 ### Phase C — OrganSystem scores
 
-- [ ] Data model: roll up organ tags + impact from stack (and/or visible nodes)
-- [ ] UI: organ scores in inspector + subtle map affordance
-- [ ] Tie into Anatomy layer highlights where cheap
+- [x] Data model: roll up organ tags + impact from stack (and/or visible nodes) — v0.3.0
+- [x] UI: organ scores in inspector + My Stack strip + subtle anatomy highlight — v0.3.0
+- [x] Print protocol includes organ coverage scores — v0.3.1
+- [ ] Tie into Anatomy layer highlights where cheap (further polish)
 
 **Exit:** Stack → organ impact is visible and explainable.
 
@@ -66,12 +68,14 @@ Educational framing only — no medical claims.
 - [x] Free: full map explore + soft-limited stack size (warn, no hard block) — v0.3.0
 - [ ] Pro: unlimited stack, PDF export, saved lab specimen filters, early anatomy extras
 - [x] In-app Pricing modal stub + checkout link placeholder — **no custom billing backend** — v0.3.0
+- [x] Static `/pricing.html` Free vs Founding Pro ($29) page + footer/modal links — v0.3.1
 
 **Exit:** Clear boundary; money can flow via hosted checkout.
 
 ### Phase F — PDF export + analytics + polish
 
-- [x] Printable protocol (`window.print` stylesheet) soft-gated — v0.3.0 (PDF polish later)
+- [x] Printable protocol (`window.print` stylesheet) soft-gated — v0.3.0
+- [x] Print protocol layout polish + organ scores — v0.3.1
 - [x] Analytics stub `track()` + constellation hooks; Plausible drop comment in index.html — v0.3.0
 - [x] Feedback link (Tally/Formspree placeholder) in footer — v0.3.0
 - [ ] README Current Status → v1.0; version bump; Pages deploy verified
@@ -97,11 +101,11 @@ Educational framing only — no medical claims.
 | Version | Focus |
 |---------|--------|
 | 0.2.8 | Anatomy mobile sheet + this roadmap |
-| 0.3.0 | My Stack depth + Free/Pro soft scaffold + analytics/feedback |
-| 0.3.x | OrganSystem scores (next) |
+| 0.3.0 | My Stack depth + Free/Pro soft scaffold + OrganSystem + zoom-toward-pointer |
+| 0.3.1 | Touch pan polish + static pricing page + print protocol (organs) |
 | 0.4.x | Anatomy Phase 2 art |
-| 0.5.x | Free/Pro flags + pricing link |
-| 0.9.x | PDF + analytics + polish |
+| 0.5.x | Live checkout URL + stronger Pro perks |
+| 0.9.x | Analytics live + polish |
 | **1.0.0** | Definition of done met |
 
 Stay lean: small PRs, one user-visible win each.
