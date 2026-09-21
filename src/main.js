@@ -1093,25 +1093,20 @@ document.addEventListener("DOMContentLoaded", () => {
       extBtn.title = 'Open Gorkipedia (or Examine fallback) for full details';
     }
 
-    // My Stack: add/remove current node
+    // My Stack: add/remove current node (desktop left inspector + bottom-sheet full)
     const stackBtn = container.querySelector('#mystack-toggle-node-btn');
     if (stackBtn) {
       const c = currentTreeType || 'supplements';
-      const inStack = myStack.has(node.id, c);
+      const nid = String(node.id);
+      const inStack = myStack.has(nid, c);
       stackBtn.textContent = inStack ? 'Remove from My Stack' : 'Add to My Stack';
       stackBtn.className = inStack
         ? 'w-full text-xs py-2 rounded-2xl border border-white/20 hover:bg-white/10 text-white/80'
         : 'w-full text-xs py-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/15 text-amber-200';
-      stackBtn.onclick = () => {
-        myStack.toggle(node.id, c);
-        // refresh label + badge + canvas
-        const nowIn = myStack.has(node.id, c);
-        stackBtn.textContent = nowIn ? 'Remove from My Stack' : 'Add to My Stack';
-        stackBtn.className = nowIn
-          ? 'w-full text-xs py-2 rounded-2xl border border-white/20 hover:bg-white/10 text-white/80'
-          : 'w-full text-xs py-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/15 text-amber-200';
-        if (typeof window.AETHERIS?.refreshMyStackUI === 'function') window.AETHERIS.refreshMyStackUI();
-        if (treeInstance) treeInstance.draw();
+      stackBtn.onclick = (e) => {
+        e.stopPropagation();
+        const toggle = window.AETHERIS && window.AETHERIS.toggleMyStackNode;
+        if (typeof toggle === 'function') toggle(node, stackBtn);
       };
     }
   }
@@ -1504,9 +1499,128 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   // =====================================================
-  // MY STACK (Phase 1 minimal) — localStorage + highlight + export
+  // MY STACK — localStorage + highlight + export/import + list
   // =====================================================
+  const STACK_DATA_BY_CONST = {
+    supplements,
+    habits,
+    exercises,
+    foods,
+    environment,
+    biomarkers
+  };
+
+  function resolveStackEntryLabel(entry) {
+    const list = STACK_DATA_BY_CONST[entry.constellation];
+    if (Array.isArray(list)) {
+      const hit = list.find((n) => String(n.id) === String(entry.id));
+      if (hit && hit.name) return hit.name;
+    }
+    return null;
+  }
+
+  function showMyStackToast(msg) {
+    let el = document.getElementById('mystack-toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'mystack-toast';
+      el.className = 'fixed bottom-28 left-1/2 -translate-x-1/2 z-[220] max-w-[90vw] px-3 py-1.5 rounded-full text-[11px] text-amber-100 bg-[#0a0d1a]/95 border border-amber-400/40 shadow-lg pointer-events-none transition-opacity duration-200';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1';
+    el.classList.remove('hidden');
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(() => {
+      el.style.opacity = '0';
+      setTimeout(() => el.classList.add('hidden'), 200);
+    }, 1600);
+  }
+
+  function styleStackToggleBtn(btn, inStack) {
+    if (!btn) return;
+    const isPreview = btn.id === 'sheet-mystack-btn';
+    btn.textContent = inStack ? 'Remove from My Stack' : 'Add to My Stack';
+    if (isPreview) {
+      btn.className = inStack
+        ? 'w-full text-[11px] py-1.5 rounded-xl border border-white/20 hover:bg-white/10 text-white/80'
+        : 'w-full text-[11px] py-1.5 rounded-xl border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/15 text-amber-200';
+    } else {
+      btn.className = inStack
+        ? 'w-full text-xs py-2 rounded-2xl border border-white/20 hover:bg-white/10 text-white/80'
+        : 'w-full text-xs py-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/15 text-amber-200';
+    }
+  }
+
+  function toggleMyStackNode(node, btnEl) {
+    if (!node || node.id == null) return;
+    const id = String(node.id);
+    const c = String(currentTreeType || window.AETHERIS?.currentConstellation || 'supplements');
+    const wasEmpty = myStack.getCount() === 0;
+    const result = myStack.toggle(id, c);
+    const nowIn = myStack.has(id, c);
+    styleStackToggleBtn(btnEl, nowIn);
+    // Keep sibling inspector/preview buttons in sync if both exist
+    document.querySelectorAll('#mystack-toggle-node-btn, #sheet-mystack-btn').forEach((b) => {
+      if (b !== btnEl) styleStackToggleBtn(b, nowIn);
+    });
+    const label = node.name || id;
+    showMyStackToast(nowIn ? `Added ${label}` : `Removed ${label}`);
+    if (result.added && wasEmpty && !myStack.highlightMode) {
+      myStack.setHighlightMode(true);
+    }
+    refreshMyStackUI();
+    if (treeInstance) treeInstance.draw();
+  }
+
+  function renderMyStackList() {
+    const listEl = document.getElementById('mystack-list');
+    if (!listEl) return;
+    const entries = myStack.getEntries();
+    if (!entries.length) {
+      listEl.innerHTML = '<div class="px-1 py-0.5 text-white/35 text-[9px]">Empty — tap Add on a node</div>';
+      return;
+    }
+    listEl.innerHTML = entries.map((entry) => {
+      const name = resolveStackEntryLabel(entry);
+      const title = name || `${entry.id} · ${entry.constellation}`;
+      const sub = name ? entry.constellation : '';
+      const safeId = String(entry.id).replace(/"/g, '&quot;');
+      const safeC = String(entry.constellation).replace(/"/g, '&quot;');
+      const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      return `<div class="flex items-center gap-1 px-1.5 py-0.5 rounded-lg border border-white/10 bg-white/[0.03]">
+        <div class="flex-1 min-w-0">
+          <div class="truncate text-white/85 text-[10px] leading-tight">${esc(title)}</div>
+          ${sub ? `<div class="truncate text-white/35 text-[8px]">${esc(sub)}</div>` : ''}
+        </div>
+        <button type="button" data-stack-remove="${safeId}" data-stack-const="${safeC}"
+                class="shrink-0 px-1.5 py-0.5 rounded border border-red-400/25 text-red-300/80 hover:bg-red-950/40 text-[9px]"
+                title="Remove">×</button>
+      </div>`;
+    }).join('');
+    listEl.querySelectorAll('[data-stack-remove]').forEach((btn) => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const id = String(btn.getAttribute('data-stack-remove'));
+        const c = String(btn.getAttribute('data-stack-const') || 'supplements');
+        const label = resolveStackEntryLabel({ id, constellation: c }) || id;
+        myStack.remove(id, c);
+        showMyStackToast(`Removed ${label}`);
+        // Sync open inspector/preview if it shows this node
+        const sel = treeInstance && treeInstance.selectedId != null ? String(treeInstance.selectedId) : null;
+        const curC = String(currentTreeType || 'supplements');
+        if (sel === id && curC === c) {
+          document.querySelectorAll('#mystack-toggle-node-btn, #sheet-mystack-btn').forEach((b) => styleStackToggleBtn(b, false));
+        }
+        refreshMyStackUI();
+        if (treeInstance) treeInstance.draw();
+      };
+    });
+  }
+
   function refreshMyStackUI() {
+    window.AETHERIS = window.AETHERIS || {};
+    window.AETHERIS.myStack = myStack;
     const badge = document.getElementById('mystack-count-badge');
     if (badge) badge.textContent = String(myStack.getCount());
     const hlBtn = document.getElementById('mystack-highlight-btn');
@@ -1517,9 +1631,15 @@ document.addEventListener("DOMContentLoaded", () => {
       hlBtn.classList.toggle('bg-amber-400/10', myStack.highlightMode);
       hlBtn.classList.toggle('text-amber-100', myStack.highlightMode);
     }
+    renderMyStackList();
   }
 
   function initMyStack() {
+    window.AETHERIS = window.AETHERIS || {};
+    window.AETHERIS.myStack = myStack;
+    window.AETHERIS.toggleMyStackNode = toggleMyStackNode;
+    window.AETHERIS.refreshMyStackUI = refreshMyStackUI;
+
     const panelBtn = document.getElementById('mystack-toggle-panel');
     const panel = document.getElementById('mystack-panel');
     const panelIcon = document.getElementById('mystack-panel-icon');
@@ -1549,19 +1669,37 @@ document.addEventListener("DOMContentLoaded", () => {
         URL.revokeObjectURL(url);
       };
     }
+    const importInput = document.getElementById('mystack-import-input');
+    if (importInput) {
+      importInput.onchange = async () => {
+        const file = importInput.files && importInput.files[0];
+        importInput.value = '';
+        if (!file) return;
+        try {
+          const text = await file.text();
+          myStack.importJSON(text, { merge: false });
+          showMyStackToast(`Imported ${myStack.getCount()} item(s)`);
+          refreshMyStackUI();
+          if (treeInstance) treeInstance.draw();
+        } catch (err) {
+          console.warn('[AETHERIS] My Stack import failed', err);
+          showMyStackToast('Import failed — invalid JSON');
+        }
+      };
+    }
     const clearBtn = document.getElementById('mystack-clear-btn');
     if (clearBtn) {
       clearBtn.onclick = () => {
         if (!myStack.getCount()) return;
         if (!confirm('Clear your entire My Stack?')) return;
         myStack.clear();
+        showMyStackToast('Stack cleared');
         refreshMyStackUI();
         if (treeInstance) treeInstance.draw();
       };
     }
     myStack.subscribe(() => refreshMyStackUI());
     refreshMyStackUI();
-    window.AETHERIS.refreshMyStackUI = refreshMyStackUI;
   }
 
   // Call init after other UI setup
