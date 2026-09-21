@@ -670,7 +670,15 @@ export class SupplementTree extends BaseTree {
     // We highlight organs that the currently selected node influences.
     const visibleNodes = this._getVisibleNodes();
     const selectedNodeForBody = this.selectedId ? visibleNodes.find(n => n.id === this.selectedId) || null : null;
-    const rawHighlightOrgs = selectedNodeForBody ? (selectedNodeForBody.organs || []) : [];
+    let rawHighlightOrgs = selectedNodeForBody ? (selectedNodeForBody.organs || []) : [];
+    // When nothing selected, lightly show My Stack organ coverage (OrganSystem rollup)
+    if ((!rawHighlightOrgs || !rawHighlightOrgs.length) && typeof window !== 'undefined') {
+      const os = window.AETHERIS && window.AETHERIS.organSystem;
+      if (os && typeof os.getTopOrgans === 'function') {
+        const stackOrgans = os.getTopOrgans(6);
+        if (stackOrgans && stackOrgans.length) rawHighlightOrgs = stackOrgans;
+      }
+    }
     const highlightOrgs = this.anatomy
       ? [...this.anatomy.expandHighlights(rawHighlightOrgs)]
       : rawHighlightOrgs;
@@ -1156,11 +1164,14 @@ export class SupplementTree extends BaseTree {
   zoomFactor(factor, focalX = null, focalY = null) {
     const v = this.view;
     if (!v) return;
+    if (!Number.isFinite(factor) || factor <= 0) return;
     const oldScale = v.scale || 1;
     let newScale = oldScale * factor;
     newScale = Math.max(0.55, Math.min(2.8, newScale));
+    // No-op when clamped (avoids pinch pan drift at min/max zoom)
+    if (Math.abs(newScale - oldScale) < 1e-6) return;
 
-    if (focalX != null && focalY != null) {
+    if (focalX != null && focalY != null && Number.isFinite(focalX) && Number.isFinite(focalY)) {
       const { width: w, height: h } = this.getLogicalSize();
       const panX = v.panX ?? v.scrollX ?? 0;
       const panY = v.panY ?? v.scrollY ?? 0;
