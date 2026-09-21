@@ -30,7 +30,9 @@ import {
   setProKey,
   isOverFreeStackLimit,
   softProGate,
+  CHECKOUT_URL,
   PRICING_CHECKOUT_URL,
+  pricingPageUrl,
   FEEDBACK_FORM_URL
 } from "./core/FeatureFlags.js";
 import { track, trackPageView, trackConstellation } from "./core/Analytics.js";
@@ -2016,13 +2018,20 @@ document.addEventListener("DOMContentLoaded", () => {
   function openPricingModal() {
     const modal = document.getElementById('pricing-modal');
     if (!modal) return;
+    const checkout = CHECKOUT_URL || PRICING_CHECKOUT_URL || '#';
     const link = document.getElementById('pricing-checkout-link');
     if (link) {
-      link.href = PRICING_CHECKOUT_URL || '#pricing-coming-soon';
-      link.textContent = PRICING_CHECKOUT_URL && !PRICING_CHECKOUT_URL.startsWith('#')
-        ? 'Checkout link'
-        : 'Checkout — Coming soon';
+      link.href = checkout.startsWith('#') ? checkout : checkout;
+      link.textContent = checkout && !String(checkout).startsWith('#')
+        ? 'Checkout — Founding Pro $29'
+        : 'Checkout — Coming soon ($29)';
+      if (checkout && !String(checkout).startsWith('#')) {
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+      }
     }
+    const pageLink = document.getElementById('pricing-page-link');
+    if (pageLink) pageLink.href = pricingPageUrl();
     modal.classList.remove('hidden');
     track('pricing_open');
   }
@@ -2044,6 +2053,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (pricingBtn) pricingBtn.onclick = () => openPricingModal();
     const hint = document.getElementById('mystack-pricing-hint');
     if (hint) hint.onclick = () => openPricingModal();
+    const footerPricingPage = document.getElementById('footer-pricing-page');
+    if (footerPricingPage) footerPricingPage.href = pricingPageUrl();
     const closeBtn = document.getElementById('pricing-modal-close');
     if (closeBtn) closeBtn.onclick = () => closePricingModal();
     const modal = document.getElementById('pricing-modal');

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aetheris Pro · Pricing</title>
+  <meta name="description" content="Aetheris Free vs Founding Pro — educational longevity map. Soft stack limits, protocol print, and checkout placeholder. Not medical advice." />
+  <meta property="og:title" content="Aetheris Pro · Pricing" />
+  <meta property="og:description" content="Free explore vs Founding Pro ($29) — unlimited My Stack, protocol print, early extras." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://markmarvik.github.io/aetheris/pricing.html" />
+  <link rel="icon" href="data:," />
+  <style>
+    :root {
+      --bg: #03050c;
+      --card: #0a0d1a;
+      --amber: #fbbf24;
+      --amber-dim: rgba(251, 191, 36, 0.12);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: rgba(255, 255, 255, 0.88);
+      --muted: rgba(255, 255, 255, 0.5);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(1200px 600px at 50% -10%, #1a1430 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    a { color: var(--amber); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 32px 20px 64px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #fbbf24, #d97706);
+      display: grid;
+      place-items: center;
+      color: #03050c;
+      font-weight: 900;
+      font-size: 20px;
+      box-shadow: 0 0 24px rgba(212, 175, 55, 0.35);
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 1.15rem;
+      letter-spacing: 0.02em;
+    }
+    .brand p {
+      margin: 2px 0 0;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(251, 191, 36, 0.7);
+    }
+    .back {
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(10, 13, 26, 0.8);
+      color: var(--muted);
+    }
+    .back:hover { color: var(--amber); text-decoration: none; border-color: rgba(251, 191, 36, 0.35); }
+    .hero {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .hero h2 {
+      margin: 0 0 8px;
+      font-size: clamp(1.4rem, 3vw, 1.85rem);
+      font-weight: 650;
+    }
+    .hero p {
+      margin: 0 auto;
+      max-width: 36rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    @media (min-width: 720px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 22px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
+    .card.pro {
+      border-color: rgba(251, 191, 36, 0.35);
+      box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.08), 0 20px 50px rgba(0, 0, 0, 0.35);
+      background: linear-gradient(165deg, rgba(251, 191, 36, 0.08), var(--card) 40%);
+    }
+    .tier {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .card.pro .tier { color: rgba(251, 191, 36, 0.85); }
+    .price {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 4px;
+    }
+    .price span { font-size: 0.95rem; font-weight: 500; color: var(--muted); }
+    .blurb {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin: 0 0 16px;
+    }
+    ul {
+      margin: 0 0 20px;
+      padding-left: 1.1rem;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.72);
+      flex: 1;
+    }
+    li { margin: 0.4rem 0; }
+    .cta {
+      display: block;
+      text-align: center;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      text-decoration: none;
+    }
+    .cta:hover { text-decoration: none; background: rgba(255, 255, 255, 0.08); }
+    .cta.primary {
+      border-color: rgba(251, 191, 36, 0.45);
+      background: var(--amber-dim);
+      color: #fef3c7;
+    }
+    .cta.primary:hover { background: rgba(251, 191, 36, 0.22); }
+    .note {
+      margin-top: 28px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      max-width: 40rem;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">∞</div>
+        <div>
+          <h1>AETHERIS</h1>
+          <p>Longevity constellation</p>
+        </div>
+      </div>
+      <a class="back" href="./">← Back to map</a>
+    </header>
+
+    <div class="hero">
+      <h2>Free explore · Founding Pro</h2>
+      <p>
+        Soft Free / Pro boundary matching in-app FeatureFlags.
+        Checkout is a placeholder until Lemon Squeezy / Stripe Payment Link is live.
+        Educational framing only — not medical advice.
+      </p>
+    </div>
+
+    <div class="grid">
+      <article class="card">
+        <div class="tier">Free</div>
+        <div class="price">$0</div>
+        <p class="blurb">Full constellation explore on the map. Local My Stack with a soft ceiling.</p>
+        <ul>
+          <li>All constellations (supplements, habits, exercises, foods, environment, biomarkers)</li>
+          <li>My Stack with soft limit of <strong>15</strong> items (warns, never hard-blocks)</li>
+          <li>Organ impact strip + anatomy layers (Phase 1)</li>
+          <li>Protocol print / share with Free watermark</li>
+        </ul>
+        <a class="cta" href="./">Open the map</a>
+      </article>
+
+      <article class="card pro">
+        <div class="tier">Founding Pro</div>
+        <div class="price">$29 <span>one-time intro</span></div>
+        <p class="blurb">Unlocks the soft Pro perks. License key stub today; hosted checkout when doors open.</p>
+        <ul>
+          <li>Unlimited My Stack (advisory Free ceiling lifts)</li>
+          <li>Protocol print / share without Free watermark</li>
+          <li>Saved lab specimen filters &amp; early anatomy extras (roadmap)</li>
+          <li>Founding buyer local unlock via in-app license key</li>
+        </ul>
+        <!-- Replace href with Lemon Squeezy / Stripe Payment Link, or set via ?checkout= -->
+        <a id="checkout-cta" class="cta primary" href="#">Founding Pro — $29 (coming soon)</a>
+      </article>
+    </div>
+
+    <p class="note">
+      No custom billing backend. Soft unlock uses localStorage key <code>aetheris-pro-key</code> in the app
+      (Pro button → paste key). Replace this CTA with your Payment Link when ready.
+      Optional: open this page with <code>?checkout=YOUR_URL</code> to override the button href for demos.
+    </p>
+
+    <footer>
+      Aetheris · educational longevity map · not medical advice
+    </footer>
+  </div>
+  <script>
+    (function () {
+      var DEFAULT_CHECKOUT = '#';
+      var params = new URLSearchParams(window.location.search);
+      var fromQuery = params.get('checkout');
+      var cta = document.getElementById('checkout-cta');
+      if (!cta) return;
+      var url = (fromQuery && /^https?:\/\//i.test(fromQuery)) ? fromQuery : DEFAULT_CHECKOUT;
+      cta.href = url;
+      if (url !== '#' && !url.startsWith('#')) {
+        cta.textContent = 'Checkout — Founding Pro $29';
+        cta.setAttribute('target', '_blank');
+        cta.setAttribute('rel', 'noopener noreferrer');
+      }
+    })();
+  </script>
+</body>
+</html>
