@@ -1,6 +1,6 @@
 # Aetheris Roadmap → v1.0
 
-**Baseline:** v0.3.2 (first-run tip + constellation deep-link + footer polish; v0.3.1 touch/pricing/print) · live: https://markmarvik.github.io/aetheris/  
+**Baseline:** v0.3.3 (organ explode + organ→node filter; v0.3.2 first-run tip / deep-link / footer) · live: https://markmarvik.github.io/aetheris/  
 **Goal:** Ship a **v1.0** web product people can explore, personalize, and (optionally) pay for — without native apps or a custom billing backend.
 
 Related: [`IMPROVEMENT_PLAN.md`](./IMPROVEMENT_PLAN.md), [`MONETIZATION_ROADMAP.md`](./MONETIZATION_ROADMAP.md).
@@ -54,6 +54,7 @@ Educational framing only — no medical claims.
 - [x] Data model: roll up organ tags + impact from stack (and/or visible nodes) — v0.3.0
 - [x] UI: organ scores in inspector + My Stack strip + subtle anatomy highlight — v0.3.0
 - [x] Print protocol includes organ coverage scores — v0.3.1
+- [x] Organ explode: hover/tap body → spread organs; click organ → green/red linked nodes — v0.3.3
 - [ ] Tie into Anatomy layer highlights where cheap (further polish)
 
 **Exit:** Stack → organ impact is visible and explainable.

@@ -2,7 +2,7 @@
 
 Refactored multi-file version of the original single-file AETHERIS experience.
 
-## Current Status (v0.3.2)
+## Current Status (v0.3.3)
 
 **Map UX (multi-constellation):**
 - Body-centric canvas: central human figure with nodes in organ rings
@@ -19,6 +19,7 @@ Refactored multi-file version of the original single-file AETHERIS experience.
 - **Analytics + feedback**: `track()` stub + constellation hooks; footer Feedback (Tally placeholder)
 - **Layered anatomy** (Issue #16 Phase 1): independent opacity for base / organs / skeleton / muscles + view presets; **mobile** opens as fixed bottom sheet (v0.2.8)
 - **Organ impact** (v0.3.0): My Stack → tagged systems coverage strip + anatomy highlight
+- **Organ explode (v0.3.3)**: hover/tap the central body to spread organs; click an organ to highlight linked nodes (green = beneficial framing, red = harmful / negative) — educational “nodes linked to this organ” only
 - HiDPI rendering via `CanvasViewport` (sharp nodes and labels)
 - 2D pan (drag + inertia), zoom toward pointer (wheel / pinch / +/-), recenter (`r`)
 - Dynamic layout: larger nodes closer to body, collision + body keep-out settling
@@ -44,6 +45,7 @@ npm run dev
 | Entry + input | [`src/main.js`](src/main.js) |
 | Tree classes | [`src/trees/SupplementTree.js`](src/trees/SupplementTree.js), Habits / Exercise / Foods / Environment / [`BiomarkerTree.js`](src/trees/BiomarkerTree.js) |
 | Layered anatomy | [`src/core/AnatomyRenderer.js`](src/core/AnatomyRenderer.js) + body draw in SupplementTree |
+| Organ explode | [`src/core/OrganExplode.js`](src/core/OrganExplode.js) + body draw / hit-test in SupplementTree |
 | HiDPI canvas | [`src/core/CanvasViewport.js`](src/core/CanvasViewport.js) |
 | Data | [`src/data/supplements.js`](src/data/supplements.js), habits, exercises, foods, environment, [`biomarkers.js`](src/data/biomarkers.js) |
 | Hover card | [`src/components/HoverPopup.js`](src/components/HoverPopup.js) |
