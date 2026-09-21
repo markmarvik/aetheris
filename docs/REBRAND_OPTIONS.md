@@ -1,5 +1,8 @@
 # Rebrand options (working title → launch name)
 
+> **Decision (2026-09-21):** Primary brand = **StackMap**. Backup = **SomaStack**.  
+> Next: claim `@stackmap` (X/YT/IG/TikTok) + best `stackmap.app` / `getstackmap.com` the same day. In-app/repo rename is a separate cutover PR.
+
 **Problem:** “Aetheris” feels vague / hard to say / weak for social search.  
 **Goal:** Name that works for **product URL + X + YouTube + optional Instagram/TikTok** before a public launch.  
 **Constraint:** Educational longevity map — not a clinic, not a drug brand.
@@ -25,7 +28,7 @@
 | 7 | **ProtoStack** | Protocol + stack | `@protostack` | “Proto” = unfinished vibe |
 | 8 | **Corpormap** | Body (corpus) + map | `@corpormap` | Easy typo / “corp” = corporate |
 
-### Recommended default for launch prep: **StackMap** or **SomaStack**
+### Locked: **StackMap** (backup **SomaStack**)
 
 - **StackMap** — clearest product promise for cold X/YT traffic.  
 - **SomaStack** — more brandable if StackMap domains are ugly/taken.

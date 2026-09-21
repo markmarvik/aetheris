@@ -1,5 +1,6 @@
 # 3-month update & addition plan (nodes + groups)
 
+**Brand:** StackMap (locked 2026-09-21).  
 **Stance:** Improve and extend **existing** constellations — **do not** all-in rewrite or flood with hundreds of thin nodes.  
 **Baseline:** ~v0.3.2 · live GH Pages · My Stack / OrganSystem / soft Free–Pro already in.  
 **Related:** `ROADMAP_V1.md`, `REBRAND_OPTIONS.md`, `MONETIZATION_ROADMAP.md`.
