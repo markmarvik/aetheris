@@ -11,6 +11,15 @@
 import { BaseTree } from "./BaseTree.js";
 import { calcVitality } from "../core/ScoringEngine.js";
 import { AnatomyRenderer } from "../core/AnatomyRenderer.js";
+import {
+  OrganExplodeController,
+  ORGAN_EXPLODE_KEYS,
+  ORGAN_LABELS,
+  ORGAN_HIT_RADIUS,
+  BODY_HIT_PAD,
+  nodeMatchesOrgan,
+  nodeIsNegativeImpact
+} from "../core/OrganExplode.js";
 
 export class SupplementTree extends BaseTree {
   /** Matches _drawCentralBody scale; used for keep-out ellipse. */
@@ -174,6 +183,8 @@ export class SupplementTree extends BaseTree {
     this.anatomy.subscribe(() => {
       if (this.canvas && typeof this.draw === 'function') this.draw();
     });
+    // Organ explode + organ→node filter (hover/tap body)
+    this.organExplode = new OrganExplodeController();
     this._loadBodyAssets();
   }
 
@@ -632,6 +643,11 @@ export class SupplementTree extends BaseTree {
   draw(highlightIds = [], forceActiveConnections = false) {
     if (!this.ctx) return;
 
+    // Advance organ explode animation; keep RAF going while in flight
+    if (this.organExplode && this.organExplode.update()) {
+      this._scheduleDraw();
+    }
+
     const ctx = this.ctx;
     const { width: w, height: h } = this.getLogicalSize();
     const dpr = this.viewport?.dpr || 1;
@@ -670,8 +686,11 @@ export class SupplementTree extends BaseTree {
     // We highlight organs that the currently selected node influences.
     const visibleNodes = this._getVisibleNodes();
     const selectedNodeForBody = this.selectedId ? visibleNodes.find(n => n.id === this.selectedId) || null : null;
-    let rawHighlightOrgs = selectedNodeForBody ? (selectedNodeForBody.organs || []) : [];
-    // When nothing selected, lightly show My Stack organ coverage (OrganSystem rollup)
+    const organFilter = this.organExplode?.activeOrganFilter || null;
+    let rawHighlightOrgs = organFilter
+      ? [organFilter]
+      : (selectedNodeForBody ? (selectedNodeForBody.organs || []) : []);
+    // When nothing selected / no organ filter, lightly show My Stack organ coverage
     if ((!rawHighlightOrgs || !rawHighlightOrgs.length) && typeof window !== 'undefined') {
       const os = window.AETHERIS && window.AETHERIS.organSystem;
       if (os && typeof os.getTopOrgans === 'function') {
@@ -682,7 +701,7 @@ export class SupplementTree extends BaseTree {
     const highlightOrgs = this.anatomy
       ? [...this.anatomy.expandHighlights(rawHighlightOrgs)]
       : rawHighlightOrgs;
-    const isNegativeImpact = !!(selectedNodeForBody && (selectedNodeForBody.impact === 'negative' || selectedNodeForBody._isNegative));
+    const isNegativeImpact = !organFilter && !!(selectedNodeForBody && (selectedNodeForBody.impact === 'negative' || selectedNodeForBody._isNegative));
 
     // PNG body is the only version (layered via AnatomyRenderer — Issue #16).
     if (this._bodyPngReady) {
@@ -723,12 +742,27 @@ export class SupplementTree extends BaseTree {
       const stack = (typeof window !== 'undefined' && window.AETHERIS && window.AETHERIS.myStack) || null;
       const constellation = (typeof window !== 'undefined' && window.AETHERIS && window.AETHERIS.currentConstellation) || 'supplements';
       const inStack = !!(stack && typeof stack.has === 'function' && stack.has(node.id, constellation));
-      const isDimmed = !!(stack && typeof stack.shouldDim === 'function' && stack.shouldDim(node.id, constellation));
+      let isDimmed = !!(stack && typeof stack.shouldDim === 'function' && stack.shouldDim(node.id, constellation));
       const isHighValue = node.vitality > 82;
+
+      // Organ explode filter: linked nodes get green/red rings; others dim
+      let organFilterMatch = false;
+      let organFilterNeg = false;
+      if (organFilter) {
+        const expand = this.anatomy
+          ? (orgs) => this.anatomy.expandHighlights(orgs)
+          : null;
+        organFilterMatch = nodeMatchesOrgan(node, organFilter, expand);
+        organFilterNeg = nodeIsNegativeImpact(node, constellation);
+        if (!organFilterMatch) isDimmed = true;
+      }
 
       // Unified simplified path (same when scrolling or not): dark fill + ring only.
       // No shading gradients, no inner circle. Fast + consistent. Selected glows.
-      if (isSelected || isHighlighted || (inStack && stack?.highlightMode)) {
+      if (organFilter && organFilterMatch) {
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = organFilterNeg ? '#ef4444' : '#22c55e';
+      } else if (isSelected || isHighlighted || (inStack && stack?.highlightMode)) {
         ctx.shadowBlur = isSelected || isHighlighted ? 22 : 14;
         ctx.shadowColor = (inStack && stack?.highlightMode && !isSelected) ? '#d4af37' : groupColor;
       } else if (isHovered) {
@@ -738,13 +772,18 @@ export class SupplementTree extends BaseTree {
         ctx.shadowBlur = 0;
       }
 
-      if (isDimmed) ctx.globalAlpha = 0.22;
+      if (isDimmed) ctx.globalAlpha = 0.18;
 
       ctx.fillStyle = "#0f1424";
-      ctx.strokeStyle = (isSelected || isHighlighted)
-        ? "#f4e9c8"
-        : (inStack && stack?.highlightMode ? '#d4af37' : groupColor);
-      ctx.lineWidth = isSelected ? 4.2 : (isHovered || (inStack && stack?.highlightMode) ? 3.0 : 2.2);
+      if (organFilter && organFilterMatch) {
+        ctx.strokeStyle = organFilterNeg ? '#ef4444' : '#22c55e';
+        ctx.lineWidth = isSelected ? 4.4 : 3.4;
+      } else {
+        ctx.strokeStyle = (isSelected || isHighlighted)
+          ? "#f4e9c8"
+          : (inStack && stack?.highlightMode ? '#d4af37' : groupColor);
+        ctx.lineWidth = isSelected ? 4.2 : (isHovered || (inStack && stack?.highlightMode) ? 3.0 : 2.2);
+      }
 
       ctx.beginPath();
       ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
@@ -947,6 +986,13 @@ export class SupplementTree extends BaseTree {
     const globalOrganScale = SupplementTree.PNG_ORGAN_DRAW_SCALE;
     const organCfg = SupplementTree.PNG_ORGAN_CONFIG || {};
 
+    const explode = this.organExplode;
+    const explodeP = explode ? explode.progress : 0;
+    const filterKey = explode?.activeOrganFilter || null;
+    const hoverOrg = explode?.hoveredOrgan || null;
+    // Cache draw positions for hit-testing (world space)
+    this._organDrawPositions = this._organDrawPositions || {};
+
     for (const key of organDrawOrder) {
       if (!layerVis.organs || layerOp.organs <= 0.01) break;
 
@@ -958,16 +1004,26 @@ export class SupplementTree extends BaseTree {
       const cfg = organCfg[key] || {};
 
       // dx/dy are in design units (the 85/26/92 etc. numbers), then multiplied by s
-      const ax = anchor.x + ((cfg.dx ?? 0) * s);
-      const ay = anchor.y + ((cfg.dy ?? 0) * s);
+      const homeX = anchor.x + ((cfg.dx ?? 0) * s);
+      const homeY = anchor.y + ((cfg.dy ?? 0) * s);
+      const drawPos = (explode && explodeP > 0.001)
+        ? explode.getDrawPosition(key, homeX, homeY)
+        : { x: homeX, y: homeY };
+      const ax = drawPos.x;
+      const ay = drawPos.y;
+      this._organDrawPositions[key] = { x: ax, y: ay };
 
       const thisScale = globalOrganScale * (cfg.scale ?? 1.0);
+      // Slight enlarge when exploded so organs read as tap targets
+      const explodeBoost = 1 + explodeP * 0.18;
 
-      const isAct = active.has(key);
-      const col = getHighlightColor(key);
+      const isFilter = filterKey === key;
+      const isHoverOrg = hoverOrg === key;
+      const isAct = active.has(key) || isFilter || (isHoverOrg && explodeP > 0.3);
+      const col = isFilter ? '#22c55e' : getHighlightColor(key);
 
-      const ow = img.naturalWidth * thisScale;
-      const oh = img.naturalHeight * thisScale;
+      const ow = img.naturalWidth * thisScale * explodeBoost;
+      const oh = img.naturalHeight * thisScale * explodeBoost;
 
       if (isAct) {
         // Skip expensive shaped shadows/glows entirely while panning
@@ -1004,9 +1060,12 @@ export class SupplementTree extends BaseTree {
       // The actual organ PNG.
       // When something is selected, non-active organs become quite transparent so the highlighted
       // ones (and their shaped glow) really stand out.
-      const idleAlpha = hasSelection
-        ? (SupplementTree.PNG_IDLE_ALPHA_WITH_SELECTION ?? 0.22)
-        : (SupplementTree.PNG_IDLE_ALPHA_NO_SELECTION ?? 0.78);
+      // During explode, keep all organs readable (tap targets).
+      const idleAlpha = (explodeP > 0.15)
+        ? Math.max(0.72, SupplementTree.PNG_IDLE_ALPHA_NO_SELECTION ?? 0.78)
+        : (hasSelection
+          ? (SupplementTree.PNG_IDLE_ALPHA_WITH_SELECTION ?? 0.22)
+          : (SupplementTree.PNG_IDLE_ALPHA_NO_SELECTION ?? 0.78));
 
       const organAlpha = (isAct
         ? (SupplementTree.PNG_ACTIVE_ALPHA ?? 1.0)
@@ -1015,6 +1074,32 @@ export class SupplementTree extends BaseTree {
       ctx.globalAlpha = organAlpha;
       ctx.drawImage(img, ax - ow / 2, ay - oh / 2, ow, oh);
       ctx.globalAlpha = 1.0;
+
+      // Label when exploded (cheap text, no medical claims)
+      if (explodeP > 0.45 && ORGAN_LABELS[key]) {
+        const labelA = Math.min(1, (explodeP - 0.45) / 0.35) * 0.9;
+        ctx.save();
+        ctx.globalAlpha = labelA;
+        ctx.font = `600 ${Math.round(11 + explodeP * 2)}px Inter, system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = isFilter ? '#86efac' : (isHoverOrg ? '#e2e8f0' : '#94a3b8');
+        ctx.fillText(ORGAN_LABELS[key], ax, ay + oh / 2 + 4);
+        ctx.restore();
+      }
+    }
+
+    // Hint near body when an organ filter is active
+    if (filterKey && explodeP > 0.2) {
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.font = '600 12px Inter, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillStyle = '#a7f3d0';
+      const label = ORGAN_LABELS[filterKey] || filterKey;
+      ctx.fillText(`Nodes linked to ${label}`, coreX, bodyFrame.by - 8);
+      ctx.restore();
     }
 
     // Optional debug anchors (super useful while tuning scales/offsets)
@@ -1112,6 +1197,162 @@ export class SupplementTree extends BaseTree {
       });
 
     ctx.restore();
+  }
+
+  // -----------------------------------------------------------------
+  // Organ explode: world conversion, body/organ hit tests, filter API
+  // -----------------------------------------------------------------
+
+  /** Canvas-local screen → world (body-centric, pan/zoom aware). */
+  screenToWorld(screenX, screenY) {
+    const v = this.view || {};
+    const { width: w, height: h } = this.getLogicalSize();
+    const panX = v.panX ?? v.scrollX ?? 0;
+    const panY = v.panY ?? v.scrollY ?? 0;
+    const scale = v.scale || 1;
+    return {
+      x: (screenX - w / 2) / scale + panX,
+      y: (screenY - h / 2) / scale + panY
+    };
+  }
+
+  /** True if world point is inside the body silhouette ellipse. */
+  hitTestBody(worldX, worldY) {
+    const rx = SupplementTree.BODY_RX * BODY_HIT_PAD;
+    const ry = SupplementTree.BODY_RY * BODY_HIT_PAD;
+    const nx = worldX / rx;
+    const ny = worldY / ry;
+    return (nx * nx + ny * ny) <= 1;
+  }
+
+  /**
+   * Hit-test exploded (or seated) organs. Prefer when explode progress is high.
+   * @returns {string|null} organ key
+   */
+  hitTestOrgan(worldX, worldY, { requireExploded = true } = {}) {
+    const explode = this.organExplode;
+    if (!explode) return null;
+    if (requireExploded && explode.progress < 0.35) return null;
+
+    const positions = this._organDrawPositions || {};
+    const keys = ORGAN_EXPLODE_KEYS;
+    let best = null;
+    let bestD = Infinity;
+    const hitR = ORGAN_HIT_RADIUS * (0.85 + explode.progress * 0.35);
+
+    for (const key of keys) {
+      const pos = positions[key];
+      if (!pos) continue;
+      const dx = pos.x - worldX;
+      const dy = pos.y - worldY;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < hitR * hitR && d2 < bestD) {
+        bestD = d2;
+        best = key;
+      }
+    }
+    return best;
+  }
+
+  /** Body silhouette OR any organ hit (for hover-leave zone). */
+  isOverBodyZone(worldX, worldY) {
+    if (this.hitTestBody(worldX, worldY)) return true;
+    const explode = this.organExplode;
+    if (explode && explode.progress > 0.2) {
+      return !!this.hitTestOrgan(worldX, worldY, { requireExploded: false });
+    }
+    return false;
+  }
+
+  /**
+   * Desktop hover: expand when over body; collapse on leave if no filter.
+   * @returns {boolean} whether a redraw was scheduled
+   */
+  handleBodyHover(screenX, screenY) {
+    if (!this.organExplode) return false;
+    const { x, y } = this.screenToWorld(screenX, screenY);
+    const over = this.isOverBodyZone(x, y);
+    const explode = this.organExplode;
+    let dirty = false;
+
+    if (over) {
+      if (explode.setExpanded(true)) dirty = true;
+      const org = explode.progress > 0.3
+        ? this.hitTestOrgan(x, y, { requireExploded: false })
+        : null;
+      if (explode.hoveredOrgan !== org) {
+        explode.hoveredOrgan = org;
+        dirty = true;
+      }
+    } else {
+      if (explode.hoveredOrgan) {
+        explode.hoveredOrgan = null;
+        dirty = true;
+      }
+      // Keep exploded while a filter is active so user can inspect green/red nodes
+      if (!explode.activeOrganFilter) {
+        if (explode.setExpanded(false)) dirty = true;
+      }
+    }
+
+    if (dirty) this._scheduleDraw();
+    return dirty;
+  }
+
+  /** Clear organ filter + collapse explode. */
+  clearOrganExplode() {
+    if (!this.organExplode) return;
+    if (this.organExplode.collapseAll()) this._scheduleDraw();
+    else this._scheduleDraw();
+  }
+
+  /**
+   * Prefer organ hit when exploded (does not steal node clicks when collapsed).
+   * @returns {string|null} organ key if handled
+   */
+  trySelectOrganAt(screenX, screenY) {
+    if (!this.organExplode) return null;
+    const explode = this.organExplode;
+    if (explode.progress < 0.4) return null;
+    const { x, y } = this.screenToWorld(screenX, screenY);
+    const org = this.hitTestOrgan(x, y, { requireExploded: false });
+    if (!org) return null;
+    explode.toggleOrganFilter(org);
+    explode.setExpanded(true);
+    this._scheduleDraw();
+    return org;
+  }
+
+  /**
+   * Body tap when no node/organ was hit: explode or collapse.
+   * @returns {boolean} true if handled
+   */
+  tryToggleBodyExplode(screenX, screenY) {
+    if (!this.organExplode) return false;
+    const { x, y } = this.screenToWorld(screenX, screenY);
+    if (!this.hitTestBody(x, y)) return false;
+    const explode = this.organExplode;
+    if (explode.isExploded && explode.progress > 0.5) {
+      explode.collapseAll();
+    } else {
+      explode.setExpanded(true);
+    }
+    this._scheduleDraw();
+    return true;
+  }
+
+  /** Empty-map tap: collapse explode + clear organ filter if any. */
+  collapseOrganExplodeIfOpen() {
+    if (!this.organExplode) return false;
+    const ex = this.organExplode;
+    if (!ex.isExploded && !ex.activeOrganFilter && ex.progress < 0.02) return false;
+    ex.collapseAll();
+    this._scheduleDraw();
+    return true;
+  }
+
+  getActiveOrganFilter() {
+    return this.organExplode?.activeOrganFilter || null;
   }
 
   // Hit testing for body-centric layout (body at center of transform)
