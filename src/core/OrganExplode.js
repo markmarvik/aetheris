@@ -38,20 +38,23 @@ export const EXPLODE_MS = 280;
  * Angles: 0 = right, -π/2 = up. Radii tuned for ~BODY_SCALE silhouette.
  */
 export const EXPLODE_LAYOUT = {
-  brain:    { angle: -Math.PI / 2,        r: 175 },
-  eyes:     { angle: -Math.PI / 2 + 0.42, r: 165 },
-  thyroid:  { angle: -Math.PI / 2 - 0.42, r: 145 },
-  nerves:   { angle: -Math.PI / 2 + 0.85, r: 155 },
-  lungs:    { angle: Math.PI * 0.88,      r: 155 },
-  heart:    { angle: Math.PI * 0.12,      r: 145 },
-  mito:     { angle: Math.PI * 0.28,      r: 165 },
-  liver:    { angle: Math.PI * 0.98,      r: 140 },
-  stomach:  { angle: Math.PI * 0.05,      r: 125 },
-  gut:      { angle: Math.PI * 0.55,      r: 150 },
-  kidneys:  { angle: Math.PI * 0.72,      r: 145 },
-  pancreas: { angle: Math.PI * 0.38,      r: 135 },
-  adrenals: { angle: Math.PI * 0.82,      r: 130 },
-  spine:    { angle: Math.PI * 1.05,      r: 120 }
+  // Even-ish ring with weighted angular slots (large sprites get more arc) +
+  // staggered radii (inner ~185–205 / outer ~225–278). Separation > perfect anatomy.
+  // Clockwise from top: head → right torso → gut → left back → lungs → thyroid.
+  brain:    { angle: -Math.PI / 2,     r: 230 }, // top, outer
+  eyes:     { angle: -1.1142,          r: 190 }, // upper-right, inner
+  nerves:   { angle: -0.6903,          r: 225 }, // right-upper, outer
+  heart:    { angle: -0.2663,          r: 195 }, // right, inner
+  stomach:  { angle: 0.1685,           r: 235 }, // right-lower, outer
+  mito:     { angle: 0.5924,           r: 198 }, // lower-right, inner
+  pancreas: { angle: 0.9729,           r: 228 }, // lower, outer
+  gut:      { angle: 1.3969,           r: 205 }, // bottom, inner
+  kidneys:  { angle: 1.8643,           r: 240 }, // lower-left, outer
+  adrenals: { angle: 2.2665,           r: 188 }, // left-lower, inner
+  spine:    { angle: 2.7231,           r: 278 }, // back-left, outer (tall PNG)
+  liver:    { angle: 3.2340,           r: 200 }, // left, inner
+  lungs:    { angle: 3.7558,           r: 268 }, // upper-left, outer (large PNG)
+  thyroid:  { angle: 4.2558,           r: 192 }  // upper-left near top, inner
 };
 
 /** Display labels (short, non-clinical). */
@@ -81,12 +84,12 @@ export const BODY_HIT_PAD = 1.08;
 /**
  * Node radial spread during explode (world units).
  * Inner-ring nodes (~body edge) push farther so organs don't sit on them;
- * distant nodes push less. Tuned against EXPLODE_LAYOUT radii (~120–175).
+ * distant nodes push less. Tuned against EXPLODE_LAYOUT radii (~185–278).
  */
 export const NODE_SPREAD_INNER = 140;
-export const NODE_SPREAD_OUTER = 400;
-export const NODE_SPREAD_PUSH_INNER = 95;
-export const NODE_SPREAD_PUSH_OUTER = 28;
+export const NODE_SPREAD_OUTER = 420;
+export const NODE_SPREAD_PUSH_INNER = 165;
+export const NODE_SPREAD_PUSH_OUTER = 36;
 
 /**
  * Whether a node should light up for the given organ filter.
