@@ -624,10 +624,12 @@ export class SupplementTree extends BaseTree {
   /**
    * Draw centered vitality score inside node.
    */
-  _drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue }) {
+  _drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue, x, y }) {
     if (r < 10) return;
 
     const vit = String(node.vitality ?? '');
+    const dx = x ?? node.x;
+    const dy = y ?? node.y;
 
     const fsVit = Math.round(Math.max(8, Math.min(13, r * 0.52)));
 
@@ -637,7 +639,7 @@ export class SupplementTree extends BaseTree {
 
     ctx.font = `${isSelected ? 800 : 700} ${fsVit}px Inter, system-ui, sans-serif`;
     ctx.fillStyle = isDimmed ? '#6b7280' : (isHighValue ? '#f4e9c8' : (isSelected ? '#e0f2fe' : '#a5d8ff'));
-    ctx.fillText(vit, node.x, node.y);
+    ctx.fillText(vit, dx, dy);
   }
 
   draw(highlightIds = [], forceActiveConnections = false) {
@@ -724,9 +726,19 @@ export class SupplementTree extends BaseTree {
     const worldTop = panY - viewHalfH - margin;
     const worldBottom = panY + viewHalfH + margin;
 
+    const explodeCtrl = this.organExplode;
+    const explodeP = explodeCtrl ? explodeCtrl.progress : 0;
+
     visibleNodes.forEach(node => {
-      // Basic view culling — big win when zoomed or panned
-      if (node.x < worldLeft || node.x > worldRight || node.y < worldTop || node.y > worldBottom) {
+      // Explode spreads nodes radially; draw/hit use displaced coords
+      const drawPos = (explodeCtrl && explodeP > 0.001)
+        ? explodeCtrl.getNodeDrawPosition(node.x, node.y)
+        : null;
+      const nx = drawPos ? drawPos.x : node.x;
+      const ny = drawPos ? drawPos.y : node.y;
+
+      // Basic view culling — big win when zoomed or panned (use draw pos)
+      if (nx < worldLeft || nx > worldRight || ny < worldTop || ny > worldBottom) {
         return;
       }
 
@@ -786,27 +798,27 @@ export class SupplementTree extends BaseTree {
       }
 
       ctx.beginPath();
-      ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+      ctx.arc(nx, ny, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       ctx.shadowBlur = 0;
 
-      this._drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue });
+      this._drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue, x: nx, y: ny });
 
       const labelSize = Math.round(Math.max(8, Math.min(11, r * 0.38)));
       ctx.fillStyle = isDimmed ? "#6b7280" : (isSelected ? "#f4e9c8" : "#e5e7eb");
       ctx.font = `${isSelected ? 700 : 600} ${labelSize}px Inter, system-ui, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
-      ctx.fillText(node.short, node.x, node.y - r - 4);
+      ctx.fillText(node.short, nx, ny - r - 4);
 
       if (isDimmed) ctx.globalAlpha = 1;
 
       if (node.highDoseRisks) {
         const warnSize = Math.max(6, Math.min(9, r * 0.22));
-        const wx = node.x + r * 0.65;
-        const wy = node.y - r * 0.65;
+        const wx = nx + r * 0.65;
+        const wy = ny - r * 0.65;
         ctx.fillStyle = '#f59e0b';
         ctx.beginPath();
         ctx.moveTo(wx, wy - warnSize);
@@ -1367,14 +1379,19 @@ export class SupplementTree extends BaseTree {
     const worldY = (screenY - h / 2) / scale + panY;
 
     const visible = this._getVisibleNodes();
+    const explode = this.organExplode;
+    const spread = explode && explode.progress > 0.001;
     for (let i = visible.length - 1; i >= 0; i--) {
       const n = visible[i];
-      const dx = n.x - worldX;
-      const dy = n.y - worldY;
-      
+      const pos = spread
+        ? explode.getNodeDrawPosition(n.x, n.y)
+        : n;
+      const dx = pos.x - worldX;
+      const dy = pos.y - worldY;
+
       // Cache the dynamic padding radius computation
       const r = (n.radius || 18) + 10;
-      
+
       // Performance optimization: Avoid repeating multiplication inside conditional check
       if ((dx * dx + dy * dy) < (r * r)) {
         return n;
