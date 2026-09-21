@@ -33,6 +33,15 @@
     /* Printable My Stack protocol — soft Pro gate (Free still prints with watermark) */
     #mystack-print-sheet { display: none; }
     @media print {
+      @page { margin: 14mm 12mm; size: auto; }
+      html, body {
+        background: #fff !important;
+        color: #111 !important;
+        height: auto !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
       body * { visibility: hidden !important; }
       #mystack-print-sheet, #mystack-print-sheet * { visibility: visible !important; }
       #mystack-print-sheet {
@@ -40,19 +49,82 @@
         position: absolute;
         left: 0; top: 0;
         width: 100%;
-        padding: 24px;
-        color: #111;
-        background: #fff;
-        font-family: system-ui, -apple-system, sans-serif;
+        max-width: 100%;
+        padding: 0 4px 28px;
+        color: #111 !important;
+        background: #fff !important;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        font-size: 12.5px;
+        line-height: 1.4;
+      }
+      #mystack-print-sheet h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+        letter-spacing: 0.02em;
+      }
+      #mystack-print-sheet h2 {
+        font-size: 13px;
+        margin: 18px 0 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #333;
+        border-bottom: 1px solid #ddd;
+        padding-bottom: 4px;
+      }
+      #mystack-print-sheet table {
+        width: 100%;
+        border-collapse: collapse;
+        page-break-inside: auto;
+      }
+      #mystack-print-sheet tr { page-break-inside: avoid; page-break-after: auto; }
+      #mystack-print-sheet th,
+      #mystack-print-sheet td {
+        text-align: left;
+        padding: 6px 5px;
+        border-bottom: 1px solid #e5e5e5;
+        vertical-align: top;
+      }
+      #mystack-print-sheet th {
+        border-bottom: 1.5px solid #bbb;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #444;
+      }
+      #mystack-print-sheet .print-organs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      #mystack-print-sheet .print-organs li {
+        border: 1px solid #ddd;
+        border-radius: 999px;
+        padding: 3px 10px;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      #mystack-print-sheet .print-disclaimer {
+        margin-top: 18px;
+        font-size: 10px;
+        color: #666;
       }
       #mystack-print-sheet .print-watermark {
         position: fixed;
-        right: 24px;
-        bottom: 24px;
-        font-size: 14px;
+        right: 12mm;
+        bottom: 10mm;
+        font-size: 12px;
         color: #999;
         font-weight: 600;
       }
+      /* Hide app chrome completely in print */
+      #loading-overlay,
+      #app-footer,
+      #pricing-modal,
+      #mobile-bottom-sheet,
+      canvas { display: none !important; }
     }
   </style>
 </head>
@@ -314,8 +386,8 @@
                 </button>
                 <button id="mystack-print-btn" type="button"
                         class="px-1.5 py-1 rounded-lg border border-white/10 text-white/70 hover:bg-white/5"
-                        title="Printable protocol (window.print)">
-                  <i class="fa-solid fa-print"></i> Print
+                        title="Print protocol (My Stack + organ scores)">
+                  <i class="fa-solid fa-print"></i> Print protocol
                 </button>
               </div>
               <button id="mystack-clear-btn" type="button"
@@ -522,20 +594,24 @@
 
   <!-- Hidden printable My Stack protocol sheet (shown only via @media print) -->
   <div id="mystack-print-sheet" aria-hidden="true">
-    <h1 style="font-size:22px;margin:0 0 4px;">AETHERIS · My Stack Protocol</h1>
-    <p id="mystack-print-meta" style="font-size:12px;color:#555;margin:0 0 16px;"></p>
-    <table id="mystack-print-table" style="width:100%;border-collapse:collapse;font-size:13px;">
+    <h1>AETHERIS · My Stack Protocol</h1>
+    <p id="mystack-print-meta" style="font-size:12px;color:#555;margin:0 0 8px;"></p>
+    <h2>Stack</h2>
+    <table id="mystack-print-table">
       <thead>
         <tr>
-          <th style="text-align:left;border-bottom:1px solid #ccc;padding:6px;">Name</th>
-          <th style="text-align:left;border-bottom:1px solid #ccc;padding:6px;">Constellation</th>
-          <th style="text-align:left;border-bottom:1px solid #ccc;padding:6px;">Slot</th>
-          <th style="text-align:left;border-bottom:1px solid #ccc;padding:6px;">Notes</th>
+          <th>Name</th>
+          <th>Constellation</th>
+          <th>Slot</th>
+          <th>Notes</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-    <p style="font-size:11px;color:#666;margin-top:20px;">Educational framing only — not medical advice.</p>
+    <h2>Organ impact <span style="font-weight:500;text-transform:none;letter-spacing:0;color:#777;">(stack coverage · educational)</span></h2>
+    <ul id="mystack-print-organs" class="print-organs"></ul>
+    <p id="mystack-print-organs-empty" class="print-disclaimer" style="display:none;margin-top:4px;">No tagged systems yet — add stack items with organ tags.</p>
+    <p class="print-disclaimer">Educational framing only — not medical advice. Scores reflect tagged systems coverage from your stack, not clinical recommendations.</p>
     <div id="mystack-print-watermark" class="print-watermark"></div>
   </div>
 

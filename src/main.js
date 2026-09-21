@@ -1993,26 +1993,42 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function populatePrintSheet() {
+    // Ensure organ scores are current before rendering the clean print view
+    recomputeOrganSystem();
     const entries = buildStackEntriesForShare();
     const meta = document.getElementById('mystack-print-meta');
     const tbody = document.querySelector('#mystack-print-table tbody');
+    const organsEl = document.getElementById('mystack-print-organs');
+    const organsEmpty = document.getElementById('mystack-print-organs-empty');
     const wm = document.getElementById('mystack-print-watermark');
+    const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     if (meta) {
-      meta.textContent = `${entries.length} item(s) · ${new Date().toLocaleString()} · Educational only`;
+      const when = new Date().toLocaleString();
+      meta.textContent = `${entries.length} item(s) · ${when} · Educational only · not medical advice`;
     }
     if (tbody) {
-      const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       tbody.innerHTML = entries.map((e) => {
         const slot = e.slot === 'morning' ? 'Morning' : e.slot === 'evening' ? 'Evening' : '—';
         return `<tr>
-          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(e.name)}</td>
-          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(e.constellation)}</td>
-          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(slot)}</td>
-          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(e.note || '—')}</td>
+          <td>${esc(e.name)}</td>
+          <td>${esc(e.constellation)}</td>
+          <td>${esc(slot)}</td>
+          <td>${esc(e.note || '—')}</td>
         </tr>`;
-      }).join('') || '<tr><td colspan="4" style="padding:8px;">Empty stack</td></tr>';
+      }).join('') || '<tr><td colspan="4">Empty stack</td></tr>';
     }
-    if (wm) wm.textContent = isPro() ? 'Aetheris Pro' : 'Free';
+    const ranked = globalOrganSystem.getRanked(16);
+    if (organsEl) {
+      organsEl.innerHTML = ranked.map((row) => {
+        const metaO = organMeta[row.organ] || {};
+        const label = metaO.label || row.organ;
+        return `<li><strong>${esc(label)}</strong> ${esc(formatOrganScore(row.score))} · ${row.count} tag(s)</li>`;
+      }).join('');
+    }
+    if (organsEmpty) {
+      organsEmpty.style.display = ranked.length ? 'none' : 'block';
+    }
+    if (wm) wm.textContent = isPro() ? 'Aetheris Pro' : 'Aetheris Free';
   }
 
   function openPricingModal() {
@@ -2162,10 +2178,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const printBtn = document.getElementById('mystack-print-btn');
     if (printBtn) {
       printBtn.onclick = () => {
-        const gate = softProGate('Printable protocol');
+        const gate = softProGate('Print protocol');
         if (!gate.pro) showMyStackToast(gate.hint || 'Free print includes a watermark');
         populatePrintSheet();
         track('mystack_print', { count: myStack.getCount(), pro: isPro() });
+        // Clean print view: @media print hides app chrome and shows #mystack-print-sheet only
         window.print();
       };
     }
