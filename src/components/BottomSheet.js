@@ -63,15 +63,15 @@ export class BottomSheet {
 
     this._attachDrag();
 
-    // Protect content areas from bubbling to canvas/global handlers (fixes tap-collapse inside inspector, #15/#18)
+    // Stop bubble to canvas AFTER children handle the event (no capture — #31 buttons must fire first)
     const stopBubble = (e) => e.stopPropagation();
     if (this.previewEl) {
-      this.previewEl.addEventListener('click', stopBubble, true);
-      this.previewEl.addEventListener('pointerdown', stopBubble, { passive: true, capture: true });
+      this.previewEl.addEventListener('click', stopBubble);
+      this.previewEl.addEventListener('pointerdown', stopBubble, { passive: true });
     }
     if (this.fullEl) {
-      this.fullEl.addEventListener('click', stopBubble, true);
-      this.fullEl.addEventListener('pointerdown', stopBubble, { passive: true, capture: true });
+      this.fullEl.addEventListener('click', stopBubble);
+      this.fullEl.addEventListener('pointerdown', stopBubble, { passive: true });
     }
 
     // Start fully closed
@@ -144,13 +144,33 @@ export class BottomSheet {
         return `<span class="px-1.5 py-px text-[9px] rounded-full border border-white/10 bg-white/5 text-white/60">${label}</span>`;
       }).join('');
 
+      const stack = window.AETHERIS && window.AETHERIS.myStack;
+      const c = (window.AETHERIS && window.AETHERIS.currentConstellation) || 'supplements';
+      const inStack = !!(stack && typeof stack.has === 'function' && stack.has(String(node.id), c));
+      const stackLabel = inStack ? 'Remove from My Stack' : 'Add to My Stack';
+      const stackCls = inStack
+        ? 'w-full text-[11px] py-1.5 rounded-xl border border-white/20 hover:bg-white/10 text-white/80'
+        : 'w-full text-[11px] py-1.5 rounded-xl border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/15 text-amber-200';
+
       this.previewEl.innerHTML = `
         <div class="text-white/80 text-[12px] leading-snug line-clamp-3">${blurb}</div>
         ${personalHtml}
         ${organPills ? `<div class="mt-2 flex flex-wrap gap-1">${organPills}</div>` : ''}
+        <div class="mt-2">
+          <button id="sheet-mystack-btn" type="button" class="${stackCls}">${stackLabel}</button>
+        </div>
         <div class="mt-2 text-[10px] text-white/40">Tap header or <span class="text-amber-300/90">DETAILS</span> • drag up to expand • drag down to close</div>
       `;
       this.previewEl.classList.remove('hidden');
+
+      const stackBtn = this.previewEl.querySelector('#sheet-mystack-btn');
+      if (stackBtn) {
+        stackBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const toggle = window.AETHERIS && window.AETHERIS.toggleMyStackNode;
+          if (typeof toggle === 'function') toggle(node, stackBtn);
+        });
+      }
     }
 
     if (this.fullEl) this.fullEl.classList.add('hidden');

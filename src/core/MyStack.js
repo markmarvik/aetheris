@@ -24,7 +24,7 @@ function emptyProfile() {
 }
 
 function nodeKey(id, constellation) {
-  return `${constellation || 'supplements'}::${id}`;
+  return `${String(constellation || 'supplements').toLowerCase()}::${String(id)}`;
 }
 
 function normalizeEntry(raw) {
