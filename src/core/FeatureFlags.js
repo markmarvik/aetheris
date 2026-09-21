@@ -5,6 +5,8 @@
  * stub (`aetheris-pro-key`). Soft limits warn but never hard-block.
  */
 
+export const APP_VERSION = '0.3.2';
+
 export const PRO_LICENSE_KEY = 'aetheris-pro-key';
 
 /** Free-tier soft ceiling for My Stack size. Soft warning only — never hard-block adds. */
@@ -77,6 +79,7 @@ export function softProGate(featureLabel = 'this feature') {
 }
 
 export const FeatureFlags = {
+  APP_VERSION,
   FREE_STACK_LIMIT,
   PRO_LICENSE_KEY,
   CHECKOUT_URL,

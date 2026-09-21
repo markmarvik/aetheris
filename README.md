@@ -2,13 +2,16 @@
 
 Refactored multi-file version of the original single-file AETHERIS experience.
 
-## Current Status (v0.3.1)
+## Current Status (v0.3.2)
 
 **Map UX (multi-constellation):**
 - Body-centric canvas: central human figure with nodes in organ rings
 - Constellations: Supplements, Habits, Exercises, Foods, Environment, **Biomarkers**
 - Biomarkers cover blood + urine + saliva (+ other) via `specimen_type` (Issue #14)
 - **My Stack depth (v0.3.0)**: notes + morning/evening slots, import replace/merge, empty states, Canvas PNG share card, printable protocol
+- **First-run tip (v0.3.2)**: one-time dismissible coach mark — select node → Add to My Stack → Anatomy (localStorage)
+- **Constellation deep-link (v0.3.2)**: `?c=habits|exercises|foods|environment|biomarkers|supplements` switches on load (shareable)
+- **Footer polish (v0.3.2)**: Feedback + Pricing + version string stay visible on mobile without heavy map cover
 - **Touch pan polish (v0.3.1)**: RAF-coalesced drag, inertia on release, chrome ignore (bottom sheet / anatomy), pinch→one-finger handoff
 - **Static pricing (v0.3.1)**: `/pricing.html` Free vs Founding Pro $29 + footer/modal links (`CHECKOUT_URL` / `VITE_CHECKOUT_URL` stub)
 - **Print protocol (v0.3.1)**: cleaner `@media print` + organ coverage scores

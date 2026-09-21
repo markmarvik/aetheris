@@ -1,6 +1,6 @@
 # Aetheris Roadmap → v1.0
 
-**Baseline:** v0.3.1 (touch pan polish + static pricing + print protocol; OrganSystem + zoom on v0.3.0) · live: https://markmarvik.github.io/aetheris/  
+**Baseline:** v0.3.2 (first-run tip + constellation deep-link + footer polish; v0.3.1 touch/pricing/print) · live: https://markmarvik.github.io/aetheris/  
 **Goal:** Ship a **v1.0** web product people can explore, personalize, and (optionally) pay for — without native apps or a custom billing backend.
 
 Related: [`IMPROVEMENT_PLAN.md`](./IMPROVEMENT_PLAN.md), [`MONETIZATION_ROADMAP.md`](./MONETIZATION_ROADMAP.md).
@@ -32,6 +32,10 @@ Educational framing only — no medical claims.
 - [x] Anatomy mobile fixed bottom sheet / overlay — v0.2.8
 - [x] Zoom-toward-cursor (wheel) + pinch clamp polish — v0.3.0
 - [x] Touch pan polish (RAF coalesce, inertia on release, chrome ignore, pinch→one-finger handoff) — v0.3.1
+- [x] First-run coach tip (select → Add to My Stack → Anatomy; localStorage dismiss) — v0.3.2
+- [x] Footer polish: Feedback + Pricing + version visible on mobile without heavy map cover — v0.3.2
+- [x] Constellation deep-link `?c=supplements|habits|…` (shareable URLs) — v0.3.2
+- [x] GH issues for remaining v1 gaps (art #36, checkout #37, limb zoom #38, Plausible #39) — v0.3.2
 - [ ] Smoke pass on live Pages (iOS Safari + Android Chrome): Anatomy, My Stack, inspector sheet
 
 **Exit:** Phone map is usable end-to-end without clipped rails or dead taps.
@@ -56,9 +60,9 @@ Educational framing only — no medical claims.
 
 ### Phase D — Anatomy Phase 2 art
 
-- [ ] Replace placeholders: spine, kidneys, pancreas, adrenals, skeleton, muscles
+- [ ] Replace placeholders: spine, kidneys, pancreas, adrenals, skeleton, muscles — [#36](https://github.com/markmarvik/aetheris/issues/36)
 - [ ] Drop-in PNG workflow documented (already sketched in README)
-- [ ] Limb inset / click-zoom (stretch goal inside v1 if art lands early)
+- [ ] Limb inset / click-zoom (stretch goal inside v1 if art lands early) — [#38](https://github.com/markmarvik/aetheris/issues/38)
 
 **Exit:** Body layers look premium enough to sit behind Pro messaging.
 
@@ -69,6 +73,7 @@ Educational framing only — no medical claims.
 - [ ] Pro: unlimited stack, PDF export, saved lab specimen filters, early anatomy extras
 - [x] In-app Pricing modal stub + checkout link placeholder — **no custom billing backend** — v0.3.0
 - [x] Static `/pricing.html` Free vs Founding Pro ($29) page + footer/modal links — v0.3.1
+- [ ] Live Lemon Squeezy / Stripe Payment Link URL (`VITE_CHECKOUT_URL`) — [#37](https://github.com/markmarvik/aetheris/issues/37)
 
 **Exit:** Clear boundary; money can flow via hosted checkout.
 
@@ -77,6 +82,7 @@ Educational framing only — no medical claims.
 - [x] Printable protocol (`window.print` stylesheet) soft-gated — v0.3.0
 - [x] Print protocol layout polish + organ scores — v0.3.1
 - [x] Analytics stub `track()` + constellation hooks; Plausible drop comment in index.html — v0.3.0
+- [ ] Live Plausible (or GA4) site ID / script — [#39](https://github.com/markmarvik/aetheris/issues/39)
 - [x] Feedback link (Tally/Formspree placeholder) in footer — v0.3.0
 - [ ] README Current Status → v1.0; version bump; Pages deploy verified
 
@@ -103,6 +109,7 @@ Educational framing only — no medical claims.
 | 0.2.8 | Anatomy mobile sheet + this roadmap |
 | 0.3.0 | My Stack depth + Free/Pro soft scaffold + OrganSystem + zoom-toward-pointer |
 | 0.3.1 | Touch pan polish + static pricing page + print protocol (organs) |
+| 0.3.2 | First-run tip + `?c=` deep-link + footer version; GH issues for remaining v1 gaps |
 | 0.4.x | Anatomy Phase 2 art |
 | 0.5.x | Live checkout URL + stronger Pro perks |
 | 0.9.x | Analytics live + polish |

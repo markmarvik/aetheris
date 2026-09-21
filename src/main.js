@@ -25,6 +25,7 @@ import { personalizedScore } from "./core/ScoringEngine.js";
 import { myStack } from "./core/MyStack.js";
 import { globalOrganSystem } from "./core/OrganSystem.js";
 import {
+  APP_VERSION,
   FREE_STACK_LIMIT,
   isPro,
   setProKey,
@@ -130,11 +131,44 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === Constellation switching (modular) ===
   let currentTreeType = 'supplements';
+  const VALID_CONSTELLATIONS = ['supplements', 'habits', 'exercises', 'foods', 'environment', 'biomarkers'];
 
-  function switchConstellation(type) {
-    if (type === currentTreeType) return;
+  function syncConstellationQuery(type) {
+    try {
+      const url = new URL(window.location.href);
+      const c = String(type || 'supplements').toLowerCase();
+      if (!VALID_CONSTELLATIONS.includes(c) || c === 'supplements') {
+        url.searchParams.delete('c');
+      } else {
+        url.searchParams.set('c', c);
+      }
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
+    } catch (e) {
+      console.warn('[AETHERIS] syncConstellationQuery failed', e);
+    }
+  }
 
-    currentTreeType = type;
+  function parseConstellationDeepLink() {
+    try {
+      const raw = new URLSearchParams(window.location.search).get('c');
+      if (!raw) return null;
+      const c = String(raw).trim().toLowerCase();
+      return VALID_CONSTELLATIONS.includes(c) ? c : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function switchConstellation(type, opts = {}) {
+    const next = String(type || '').toLowerCase();
+    if (!VALID_CONSTELLATIONS.includes(next)) return;
+    if (next === currentTreeType) {
+      if (!opts.fromDeepLink) syncConstellationQuery(next);
+      return;
+    }
+
+    currentTreeType = next;
+    type = next; // keep existing body using `type`
     stopInertia();
     hoverPopup.hide();
     if (window.AETHERIS?.bottomSheet) window.AETHERIS.bottomSheet.close(true);
@@ -210,6 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Update button active states
     updateConstellationButtons(type);
+    syncConstellationQuery(type);
 
     // Clear detail panel
     if (detailPanel) {
@@ -578,6 +613,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isEventOverElement(e, document.getElementById('mystack-panel'))) return true;
     if (isEventOverElement(e, document.getElementById('app-footer'))) return true;
     if (isEventOverElement(e, document.getElementById('pricing-modal'))) return true;
+    if (isEventOverElement(e, document.getElementById('first-run-tip'))) return true;
     if (isEventOverElement(e, document.getElementById('gorkipedia-explorer-modal'))) return true;
     if (isEventOverElement(e, document.getElementById('right-map-controls'))) return true;
     if (isEventOverElement(e, document.getElementById('bottom-controls'))) return true;
@@ -1018,6 +1054,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Mark initial active state
   updateConstellationButtons('supplements');
+
+  // Shareable constellation deep-link: ?c=supplements|habits|exercises|foods|environment|biomarkers
+  const deepLinkConstellation = parseConstellationDeepLink();
+  if (deepLinkConstellation && deepLinkConstellation !== 'supplements') {
+    switchConstellation(deepLinkConstellation, { fromDeepLink: true });
+  } else {
+    syncConstellationQuery(currentTreeType);
+  }
 
   // Wire mobile-only expandable vertical filters toggle (right column under selector)
   const mobileFiltersToggle = document.getElementById('mobile-filters-toggle');
@@ -2057,7 +2101,46 @@ document.addEventListener("DOMContentLoaded", () => {
     if (modal) modal.classList.add('hidden');
   }
 
+  const FIRST_RUN_TIP_KEY = 'aetheris-first-run-tip-v1';
+
+  function dismissFirstRunTip() {
+    const tip = document.getElementById('first-run-tip');
+    if (tip) tip.classList.add('hidden');
+    try { localStorage.setItem(FIRST_RUN_TIP_KEY, '1'); } catch (_) { /* ignore */ }
+    track('first_run_tip_dismiss');
+  }
+
+  function initFirstRunTip() {
+    try {
+      if (localStorage.getItem(FIRST_RUN_TIP_KEY) === '1') return;
+    } catch (_) {
+      return;
+    }
+    const tip = document.getElementById('first-run-tip');
+    if (!tip) return;
+    // Show after loading overlay settles
+    setTimeout(() => {
+      try {
+        if (localStorage.getItem(FIRST_RUN_TIP_KEY) === '1') return;
+      } catch (_) { return; }
+      tip.classList.remove('hidden');
+      track('first_run_tip_show');
+    }, 900);
+    const dismissBtn = document.getElementById('first-run-tip-dismiss');
+    const gotIt = document.getElementById('first-run-tip-got-it');
+    if (dismissBtn && !dismissBtn._wired) {
+      dismissBtn._wired = true;
+      dismissBtn.onclick = (e) => { e.stopPropagation(); dismissFirstRunTip(); };
+    }
+    if (gotIt && !gotIt._wired) {
+      gotIt._wired = true;
+      gotIt.onclick = (e) => { e.stopPropagation(); dismissFirstRunTip(); };
+    }
+  }
+
   function initFeedbackAndPricing() {
+    const ver = document.getElementById('app-version');
+    if (ver) ver.textContent = `v${APP_VERSION}`;
     const fb = document.getElementById('feedback-btn');
     if (fb) {
       fb.onclick = () => {
@@ -2206,6 +2289,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initPersonalCorner();
   initMyStack();
   initFeedbackAndPricing();
+  initFirstRunTip();
   trackPageView();
 
   window.AETHERIS.tree = treeInstance;
