@@ -2,12 +2,15 @@
 
 Refactored multi-file version of the original single-file AETHERIS experience.
 
-## Current Status (v0.2.8)
+## Current Status (v0.3.0)
 
 **Map UX (multi-constellation):**
 - Body-centric canvas: central human figure with nodes in organ rings
 - Constellations: Supplements, Habits, Exercises, Foods, Environment, **Biomarkers**
 - Biomarkers cover blood + urine + saliva (+ other) via `specimen_type` (Issue #14)
+- **My Stack depth (v0.3.0)**: notes + morning/evening slots, import replace/merge, empty states, Canvas PNG share card, printable protocol
+- **Free/Pro soft scaffold**: `FeatureFlags` + localStorage license key stub; soft stack-limit warnings (no hard paywall); Pricing modal “Coming soon”
+- **Analytics + feedback**: `track()` stub + constellation hooks; footer Feedback (Tally placeholder)
 - **Layered anatomy** (Issue #16 Phase 1): independent opacity for base / organs / skeleton / muscles + view presets; **mobile** opens as fixed bottom sheet (v0.2.8)
 - HiDPI rendering via `CanvasViewport` (sharp nodes and labels)
 - 2D pan (drag), zoom (wheel / +/-), recenter (`r`)

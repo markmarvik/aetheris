@@ -23,6 +23,17 @@ import { ExplorerModal } from "./components/ExplorerModal.js";
 import { BottomSheet } from "./components/BottomSheet.js";
 import { personalizedScore } from "./core/ScoringEngine.js";
 import { myStack } from "./core/MyStack.js";
+import {
+  FREE_STACK_LIMIT,
+  isPro,
+  setProKey,
+  isOverFreeStackLimit,
+  softProGate,
+  PRICING_CHECKOUT_URL,
+  FEEDBACK_FORM_URL
+} from "./core/FeatureFlags.js";
+import { track, trackPageView, trackConstellation } from "./core/Analytics.js";
+import { downloadStackShareCard } from "./core/ShareCard.js";
 
 // Import Tailwind + custom styles (processed by Vite)
 import './style.css';
@@ -191,6 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Update global reference
     window.AETHERIS.tree = treeInstance;
     window.AETHERIS.currentConstellation = type;
+    trackConstellation(type);
 
     // Update button active states
     updateConstellationButtons(type);
@@ -1621,38 +1633,63 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     const label = node.name || id;
     showMyStackToast(nowIn ? `Added ${label}` : `Removed ${label}`);
+    if (result.added && result.overSoftLimit) {
+      showMyStackToast(`Soft limit (${FREE_STACK_LIMIT}) — still saved. Pro lifts the advisory ceiling.`);
+      track('mystack_soft_limit', { count: myStack.getCount() });
+    }
     if (result.added && wasEmpty && !myStack.highlightMode) {
       myStack.setHighlightMode(true);
     }
+    track(nowIn ? 'mystack_add' : 'mystack_remove', { id, constellation: c });
     refreshMyStackUI();
     if (treeInstance) treeInstance.draw();
   }
 
   function renderMyStackList() {
     const listEl = document.getElementById('mystack-list');
+    const emptyEl = document.getElementById('mystack-empty');
     if (!listEl) return;
     const entries = myStack.getEntries();
+    if (emptyEl) emptyEl.classList.toggle('hidden', entries.length > 0);
     if (!entries.length) {
-      listEl.innerHTML = '<div class="px-1 py-0.5 text-white/35 text-[9px]">Empty — tap Add on a node</div>';
+      listEl.innerHTML = '';
       return;
     }
+    const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     listEl.innerHTML = entries.map((entry) => {
       const name = resolveStackEntryLabel(entry);
       const title = name || `${entry.id} · ${entry.constellation}`;
       const sub = name ? entry.constellation : '';
-      const safeId = String(entry.id).replace(/"/g, '&quot;');
-      const safeC = String(entry.constellation).replace(/"/g, '&quot;');
-      const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      return `<div class="flex items-center gap-1 px-1.5 py-0.5 rounded-lg border border-white/10 bg-white/[0.03]">
-        <div class="flex-1 min-w-0">
-          <div class="truncate text-white/85 text-[10px] leading-tight">${esc(title)}</div>
-          ${sub ? `<div class="truncate text-white/35 text-[8px]">${esc(sub)}</div>` : ''}
+      const safeId = esc(entry.id);
+      const safeC = esc(entry.constellation);
+      const noteVal = esc(entry.note || '');
+      const slot = entry.slot || '';
+      return `<div class="flex flex-col gap-0.5 px-1.5 py-1 rounded-lg border border-white/10 bg-white/[0.03]" data-stack-row="${safeId}" data-stack-const="${safeC}">
+        <div class="flex items-center gap-1">
+          <div class="flex-1 min-w-0">
+            <div class="truncate text-white/85 text-[10px] leading-tight">${esc(title)}</div>
+            ${sub ? `<div class="truncate text-white/35 text-[8px]">${esc(sub)}</div>` : ''}
+          </div>
+          <button type="button" data-stack-remove="${safeId}" data-stack-const="${safeC}"
+                  class="shrink-0 px-1.5 py-0.5 rounded border border-red-400/25 text-red-300/80 hover:bg-red-950/40 text-[9px]"
+                  title="Remove">×</button>
         </div>
-        <button type="button" data-stack-remove="${safeId}" data-stack-const="${safeC}"
-                class="shrink-0 px-1.5 py-0.5 rounded border border-red-400/25 text-red-300/80 hover:bg-red-950/40 text-[9px]"
-                title="Remove">×</button>
+        <div class="flex items-center gap-1">
+          <select data-stack-slot="${safeId}" data-stack-const="${safeC}"
+                  class="shrink-0 max-w-[72px] bg-black/40 border border-white/10 rounded px-1 py-0.5 text-[9px] text-white/70"
+                  title="Morning / evening slot">
+            <option value="" ${!slot ? 'selected' : ''}>Slot</option>
+            <option value="morning" ${slot === 'morning' ? 'selected' : ''}>Morning</option>
+            <option value="evening" ${slot === 'evening' ? 'selected' : ''}>Evening</option>
+          </select>
+          <input type="text" data-stack-note="${safeId}" data-stack-const="${safeC}"
+                 value="${noteVal}" maxlength="500" placeholder="Note…"
+                 class="flex-1 min-w-0 bg-black/40 border border-white/10 rounded px-1 py-0.5 text-[9px] text-white/75 placeholder:text-white/25"
+                 title="Personal note (saved locally)" />
+        </div>
       </div>`;
     }).join('');
+
     listEl.querySelectorAll('[data-stack-remove]').forEach((btn) => {
       btn.onclick = (e) => {
         e.stopPropagation();
@@ -1661,7 +1698,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const label = resolveStackEntryLabel({ id, constellation: c }) || id;
         myStack.remove(id, c);
         showMyStackToast(`Removed ${label}`);
-        // Sync open inspector/preview if it shows this node
         const sel = treeInstance && treeInstance.selectedId != null ? String(treeInstance.selectedId) : null;
         const curC = String(currentTreeType || 'supplements');
         if (sel === id && curC === c) {
@@ -1671,13 +1707,43 @@ document.addEventListener("DOMContentLoaded", () => {
         if (treeInstance) treeInstance.draw();
       };
     });
+
+    listEl.querySelectorAll('[data-stack-slot]').forEach((sel) => {
+      sel.onchange = (e) => {
+        e.stopPropagation();
+        const id = String(sel.getAttribute('data-stack-slot'));
+        const c = String(sel.getAttribute('data-stack-const') || 'supplements');
+        myStack.setSlot(id, c, sel.value || null);
+        track('mystack_set_slot', { id, constellation: c, slot: sel.value || null });
+      };
+    });
+
+    listEl.querySelectorAll('[data-stack-note]').forEach((inp) => {
+      let t = null;
+      const commit = () => {
+        const id = String(inp.getAttribute('data-stack-note'));
+        const c = String(inp.getAttribute('data-stack-const') || 'supplements');
+        myStack.setNote(id, c, inp.value);
+        track('mystack_set_note', { id, constellation: c });
+      };
+      inp.oninput = () => {
+        clearTimeout(t);
+        t = setTimeout(commit, 400);
+      };
+      inp.onchange = commit;
+      inp.onclick = (e) => e.stopPropagation();
+    });
   }
 
   function refreshMyStackUI() {
     window.AETHERIS = window.AETHERIS || {};
     window.AETHERIS.myStack = myStack;
+    const count = myStack.getCount();
     const badge = document.getElementById('mystack-count-badge');
-    if (badge) badge.textContent = String(myStack.getCount());
+    if (badge) {
+      badge.textContent = String(count);
+      badge.title = isPro() ? 'Pro · unlimited' : `Free soft limit ${FREE_STACK_LIMIT}`;
+    }
     const hlBtn = document.getElementById('mystack-highlight-btn');
     const hlLabel = document.getElementById('mystack-highlight-label');
     if (hlLabel) hlLabel.textContent = myStack.highlightMode ? 'Highlight on' : 'Highlight off';
@@ -1686,7 +1752,96 @@ document.addEventListener("DOMContentLoaded", () => {
       hlBtn.classList.toggle('bg-amber-400/10', myStack.highlightMode);
       hlBtn.classList.toggle('text-amber-100', myStack.highlightMode);
     }
+    const warn = document.getElementById('mystack-soft-limit-warn');
+    const limitN = document.getElementById('mystack-limit-n');
+    if (limitN) limitN.textContent = String(FREE_STACK_LIMIT);
+    if (warn) warn.classList.toggle('hidden', !isOverFreeStackLimit(count));
     renderMyStackList();
+  }
+
+  function buildStackEntriesForShare() {
+    return myStack.getEntries().map((e) => ({
+      ...e,
+      name: resolveStackEntryLabel(e) || e.id
+    }));
+  }
+
+  function populatePrintSheet() {
+    const entries = buildStackEntriesForShare();
+    const meta = document.getElementById('mystack-print-meta');
+    const tbody = document.querySelector('#mystack-print-table tbody');
+    const wm = document.getElementById('mystack-print-watermark');
+    if (meta) {
+      meta.textContent = `${entries.length} item(s) · ${new Date().toLocaleString()} · Educational only`;
+    }
+    if (tbody) {
+      const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      tbody.innerHTML = entries.map((e) => {
+        const slot = e.slot === 'morning' ? 'Morning' : e.slot === 'evening' ? 'Evening' : '—';
+        return `<tr>
+          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(e.name)}</td>
+          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(e.constellation)}</td>
+          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(slot)}</td>
+          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(e.note || '—')}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="4" style="padding:8px;">Empty stack</td></tr>';
+    }
+    if (wm) wm.textContent = isPro() ? 'Aetheris Pro' : 'Free';
+  }
+
+  function openPricingModal() {
+    const modal = document.getElementById('pricing-modal');
+    if (!modal) return;
+    const link = document.getElementById('pricing-checkout-link');
+    if (link) {
+      link.href = PRICING_CHECKOUT_URL || '#pricing-coming-soon';
+      link.textContent = PRICING_CHECKOUT_URL && !PRICING_CHECKOUT_URL.startsWith('#')
+        ? 'Checkout link'
+        : 'Checkout — Coming soon';
+    }
+    modal.classList.remove('hidden');
+    track('pricing_open');
+  }
+
+  function closePricingModal() {
+    const modal = document.getElementById('pricing-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function initFeedbackAndPricing() {
+    const fb = document.getElementById('feedback-btn');
+    if (fb) {
+      fb.onclick = () => {
+        track('feedback_click');
+        window.open(FEEDBACK_FORM_URL, '_blank', 'noopener,noreferrer');
+      };
+    }
+    const pricingBtn = document.getElementById('pricing-btn');
+    if (pricingBtn) pricingBtn.onclick = () => openPricingModal();
+    const hint = document.getElementById('mystack-pricing-hint');
+    if (hint) hint.onclick = () => openPricingModal();
+    const closeBtn = document.getElementById('pricing-modal-close');
+    if (closeBtn) closeBtn.onclick = () => closePricingModal();
+    const modal = document.getElementById('pricing-modal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closePricingModal();
+      });
+    }
+    const apply = document.getElementById('pricing-apply-key');
+    const input = document.getElementById('pricing-license-input');
+    if (apply && input) {
+      apply.onclick = () => {
+        setProKey(input.value);
+        showMyStackToast(isPro() ? 'Pro unlocked (local key)' : 'Pro key cleared');
+        track('pro_key_apply', { pro: isPro() });
+        refreshMyStackUI();
+        closePricingModal();
+      };
+    }
+    window.AETHERIS = window.AETHERIS || {};
+    window.AETHERIS.isPro = isPro;
+    window.AETHERIS.openPricingModal = openPricingModal;
   }
 
   function initMyStack() {
@@ -1722,24 +1877,61 @@ document.addEventListener("DOMContentLoaded", () => {
         a.download = 'aetheris-my-stack.json';
         a.click();
         URL.revokeObjectURL(url);
+        track('mystack_export');
       };
     }
+    const importBtn = document.getElementById('mystack-import-btn');
     const importInput = document.getElementById('mystack-import-input');
+    if (importBtn && importInput) {
+      importBtn.onclick = () => importInput.click();
+    }
     if (importInput) {
       importInput.onchange = async () => {
         const file = importInput.files && importInput.files[0];
         importInput.value = '';
         if (!file) return;
+        const modeEl = document.querySelector('input[name="mystack-import-mode"]:checked');
+        const merge = modeEl && modeEl.value === 'merge';
         try {
-          const text = await file.text();
-          myStack.importJSON(text, { merge: false });
-          showMyStackToast(`Imported ${myStack.getCount()} item(s)`);
+          const textIn = await file.text();
+          myStack.importJSON(textIn, { merge });
+          showMyStackToast(`${merge ? 'Merged' : 'Imported'} · ${myStack.getCount()} item(s)`);
+          track('mystack_import', { merge, count: myStack.getCount() });
           refreshMyStackUI();
           if (treeInstance) treeInstance.draw();
         } catch (err) {
           console.warn('[AETHERIS] My Stack import failed', err);
           showMyStackToast('Import failed — invalid JSON');
         }
+      };
+    }
+    const shareBtn = document.getElementById('mystack-share-btn');
+    if (shareBtn) {
+      shareBtn.onclick = async () => {
+        const entries = buildStackEntriesForShare();
+        if (!entries.length) {
+          showMyStackToast('Stack is empty — add nodes first');
+          return;
+        }
+        const gate = softProGate('Share card');
+        if (!gate.pro) showMyStackToast(gate.hint);
+        const result = await downloadStackShareCard(entries, { isPro: isPro() });
+        if (result.ok) {
+          showMyStackToast('Share card downloaded');
+          track('mystack_share_png', { count: entries.length, pro: isPro() });
+        } else {
+          showMyStackToast('Share card failed');
+        }
+      };
+    }
+    const printBtn = document.getElementById('mystack-print-btn');
+    if (printBtn) {
+      printBtn.onclick = () => {
+        const gate = softProGate('Printable protocol');
+        if (!gate.pro) showMyStackToast(gate.hint || 'Free print includes a watermark');
+        populatePrintSheet();
+        track('mystack_print', { count: myStack.getCount(), pro: isPro() });
+        window.print();
       };
     }
     const clearBtn = document.getElementById('mystack-clear-btn');
@@ -1749,6 +1941,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!confirm('Clear your entire My Stack?')) return;
         myStack.clear();
         showMyStackToast('Stack cleared');
+        track('mystack_clear');
         refreshMyStackUI();
         if (treeInstance) treeInstance.draw();
       };
@@ -1760,6 +1953,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Call init after other UI setup
   initPersonalCorner();
   initMyStack();
+  initFeedbackAndPricing();
+  trackPageView();
 
   window.AETHERIS.tree = treeInstance;
 

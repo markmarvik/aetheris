@@ -1,17 +1,20 @@
 /**
- * MyStack — local personal stack profile (Phase 1).
+ * MyStack — local personal stack profile (Phase 1+ depth).
  *
  * Persists selected constellation nodes in localStorage so users can build
  * and re-open a personal stack without accounts. Free-tier soft limit is
- * advisory only (no paywall).
+ * advisory only (no paywall). Supports notes + morning/evening slots.
  */
+
+import { FREE_STACK_LIMIT, isOverFreeStackLimit } from './FeatureFlags.js';
 
 const STORAGE_KEY = 'aetheris-mystack-v1';
 const HIGHLIGHT_KEY = 'aetheris-mystack-highlight';
 const SCHEMA_VERSION = 1;
 
-/** Soft free-tier ceiling. TODO(Pro): raise / remove when Pro unlocks unlimited stack + cloud sync. Do NOT hard-block with paywalls. */
-export const FREE_STACK_SOFT_LIMIT = 15;
+/** @deprecated Prefer FREE_STACK_LIMIT from FeatureFlags — kept as alias. */
+export const FREE_STACK_SOFT_LIMIT = FREE_STACK_LIMIT;
+export { FREE_STACK_LIMIT };
 
 const VALID_SLOTS = new Set(['morning', 'evening', null, undefined, '']);
 
@@ -155,7 +158,7 @@ export class MyStackStore {
     const c = String(constellation || 'supplements').toLowerCase();
     const key = nodeKey(id, c);
     if (this._index.has(key)) {
-      return { ok: true, already: true, overSoftLimit: this.getCount() > FREE_STACK_SOFT_LIMIT };
+      return { ok: true, already: true, overSoftLimit: isOverFreeStackLimit(this.getCount()) };
     }
     const entry = normalizeEntry({ id, constellation: c, ...extras });
     if (!entry) return { ok: false, reason: 'invalid' };
@@ -164,7 +167,7 @@ export class MyStackStore {
     this._persist();
     return {
       ok: true,
-      overSoftLimit: this.getCount() > FREE_STACK_SOFT_LIMIT,
+      overSoftLimit: isOverFreeStackLimit(this.getCount()),
       count: this.getCount()
     };
   }
