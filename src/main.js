@@ -23,6 +23,7 @@ import { ExplorerModal } from "./components/ExplorerModal.js";
 import { BottomSheet } from "./components/BottomSheet.js";
 import { personalizedScore } from "./core/ScoringEngine.js";
 import { myStack } from "./core/MyStack.js";
+import { globalOrganSystem } from "./core/OrganSystem.js";
 
 // Import Tailwind + custom styles (processed by Vite)
 import './style.css';
@@ -110,7 +111,8 @@ document.addEventListener("DOMContentLoaded", () => {
     ORGAN_META: organMeta,
     currentConstellation: 'supplements',
     categories: categories,
-    myStack
+    myStack,
+    organSystem: globalOrganSystem
   };
 
   // === Constellation switching (modular) ===
@@ -205,6 +207,9 @@ document.addEventListener("DOMContentLoaded", () => {
     renderGroupFilters();
     renderNodeLimitControl();
     wireAnatomyControls();
+    recomputeOrganSystem();
+    renderOrganImpactUI();
+    if (treeInstance && typeof treeInstance.draw === 'function') treeInstance.draw();
   }
 
   function updateConstellationButtons(activeType) {
@@ -723,9 +728,12 @@ document.addEventListener("DOMContentLoaded", () => {
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     stopInertia();
+    if (!treeInstance || typeof treeInstance.zoomFactor !== 'function') return;
     // Invert deltaY so wheel "down" zooms out, wheel "up" zooms in (standard map behavior).
-    // Buttons/keyboard still use positive=zoom-in via zoom(1).
-    treeInstance.zoom(-e.deltaY);
+    // Zoom toward pointer (canvas-local coords); buttons/keyboard stay center via zoom(±1).
+    const factor = (-e.deltaY) > 0 ? 1.18 : 0.82;
+    const { x: localX, y: localY } = canvasPointer(e);
+    treeInstance.zoomFactor(factor, localX, localY);
   }, { passive: false });
 
   // Legacy mouseup for safety (some edge cases)
@@ -1051,6 +1059,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         ${extraInfo}
 
+        <div class="mt-3" id="organ-impact-inspector"></div>
+
         <div class="mt-3" id="mystack-inspector-row">
           <button id="mystack-toggle-node-btn" type="button"
                   class="w-full text-xs py-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/15 text-amber-200">
@@ -1164,6 +1174,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof toggle === 'function') toggle(node, stackBtn);
       };
     }
+    try { renderOrganImpactUI(); } catch (_) {}
   }
 
   // Desktop path kept for wide screens. Mobile routes to bottom sheet instead.
@@ -1171,7 +1182,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!detailPanel) return;
     if (!node) {
       const label = currentTreeType === 'biomarkers' ? 'biomarkers' : (currentTreeType === 'environment' ? 'environment' : (currentTreeType === 'habits' ? 'habits' : (currentTreeType === 'exercises' ? 'exercises' : (currentTreeType === 'foods' ? 'foods' : 'supplements'))));
-      detailPanel.innerHTML = `<div class="text-white/60">Select a node on the ${label} map</div>`;
+      detailPanel.innerHTML = `<div class="text-white/60 mb-3">Select a node on the ${label} map</div><div id="organ-impact-inspector" class="mt-2"></div>`;
+      try { renderOrganImpactUI(); } catch (_) {}
       return;
     }
     populateInspector(detailPanel, node);
@@ -1673,6 +1685,88 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+
+  function resolveNodeForOrganSystem(id, constellation) {
+    const list = STACK_DATA_BY_CONST[String(constellation || '').toLowerCase()];
+    if (!Array.isArray(list)) return null;
+    return list.find((n) => String(n.id) === String(id)) || null;
+  }
+
+  function recomputeOrganSystem() {
+    window.AETHERIS = window.AETHERIS || {};
+    window.AETHERIS.organSystem = globalOrganSystem;
+    globalOrganSystem.recomputeFromStack(myStack.getEntries(), resolveNodeForOrganSystem);
+    return globalOrganSystem;
+  }
+
+  function formatOrganScore(score) {
+    const s = Number(score) || 0;
+    const abs = Math.abs(s);
+    const body = abs >= 10 ? abs.toFixed(0) : abs.toFixed(1);
+    return (s >= 0 ? '+' : '−') + body;
+  }
+
+  function organImpactStripHtml(limit = 8) {
+    const ranked = globalOrganSystem.getRanked(limit);
+    if (!ranked.length) {
+      return `<div class="text-[9px] text-white/35 leading-snug">Add stack items to see tagged systems coverage.</div>`;
+    }
+    const chips = ranked.map((row) => {
+      const meta = organMeta[row.organ] || {};
+      const label = meta.label || row.organ;
+      const pos = row.score >= 0;
+      const color = meta.color || (pos ? '#4ade80' : '#f87171');
+      const cls = pos
+        ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-100'
+        : 'border-red-400/30 bg-red-400/10 text-red-100';
+      return `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full border ${cls} text-[9px] leading-none" title="Stack coverage (tagged systems) · ${row.count} item(s)" style="box-shadow: inset 0 0 0 1px ${color}22">
+        <span class="opacity-90">${label}</span>
+        <span class="font-mono opacity-80">${formatOrganScore(row.score)}</span>
+      </span>`;
+    }).join('');
+    return `<div class="text-[9px] uppercase tracking-widest text-white/45 mb-1">Organ impact <span class="normal-case tracking-normal text-white/30">(stack coverage)</span></div>
+      <div class="flex flex-wrap gap-1">${chips}</div>
+      <div class="mt-1 text-[8px] text-white/30 leading-snug">Educational tags from your stack — not medical advice.</div>`;
+  }
+
+  function ensureOrganImpactMount(parent, mountId) {
+    if (!parent) return null;
+    let el = document.getElementById(mountId);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = mountId;
+      el.className = 'mt-1 px-1.5 py-1 rounded-xl border border-white/10 bg-white/[0.03]';
+      parent.appendChild(el);
+    }
+    return el;
+  }
+
+  function renderOrganImpactUI() {
+    // Lightweight mount inside My Stack panel (avoid heavy HTML edits)
+    const panel = document.getElementById('mystack-panel');
+    if (panel) {
+      let mount = document.getElementById('organ-impact-mystack');
+      if (!mount) {
+        mount = document.createElement('div');
+        mount.id = 'organ-impact-mystack';
+        mount.className = 'px-1.5 py-1 rounded-xl border border-white/10 bg-white/[0.03]';
+        const list = document.getElementById('mystack-list');
+        if (list && list.parentNode === panel) {
+          list.insertAdjacentElement('afterend', mount);
+        } else {
+          panel.insertBefore(mount, panel.firstChild);
+        }
+      }
+      mount.innerHTML = organImpactStripHtml(6);
+    }
+
+    // Inspector mount (desktop detail + any #organ-impact-inspector hosts)
+    document.querySelectorAll('#organ-impact-inspector').forEach((el) => {
+      el.innerHTML = organImpactStripHtml(8);
+      el.classList.remove('hidden');
+    });
+  }
+
   function refreshMyStackUI() {
     window.AETHERIS = window.AETHERIS || {};
     window.AETHERIS.myStack = myStack;
@@ -1687,6 +1781,10 @@ document.addEventListener("DOMContentLoaded", () => {
       hlBtn.classList.toggle('text-amber-100', myStack.highlightMode);
     }
     renderMyStackList();
+    recomputeOrganSystem();
+    renderOrganImpactUI();
+    window.AETHERIS.organSystem = globalOrganSystem;
+    if (treeInstance && typeof treeInstance.draw === 'function' && !treeInstance.selectedId) treeInstance.draw();
   }
 
   function initMyStack() {
