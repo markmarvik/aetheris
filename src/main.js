@@ -72,19 +72,27 @@ document.addEventListener("DOMContentLoaded", () => {
     return window.innerWidth < 768 || (navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
   }
 
-  function isEventOverBottomSheet(e) {
-    // Prevent global tap-to-select / close logic from firing when user interacts with the mobile inspector sheet.
-    // Fixes collapse on tap inside content (Issues #15, #18).
-    if (!e || !e.clientX || !e.clientY) return false;
-    const sheet = document.getElementById('mobile-bottom-sheet');
-    if (!sheet || sheet.classList.contains('hidden')) return false;
-    const rect = sheet.getBoundingClientRect();
+  function isEventOverElement(e, el) {
+    if (!e || e.clientX == null || e.clientY == null || !el) return false;
+    if (el.classList.contains('hidden')) return false;
+    const rect = el.getBoundingClientRect();
     return (
       e.clientX >= rect.left &&
       e.clientX <= rect.right &&
       e.clientY >= rect.top &&
       e.clientY <= rect.bottom
     );
+  }
+
+  function isEventOverBottomSheet(e) {
+    // Prevent global tap-to-select / close logic from firing when user interacts with the mobile inspector sheet.
+    // Fixes collapse on tap inside content (Issues #15, #18).
+    return isEventOverElement(e, document.getElementById('mobile-bottom-sheet'));
+  }
+
+  function isEventOverAnatomyPanel(e) {
+    // Mobile anatomy bottom sheet (z-100) — ignore map select when tapping presets/sliders
+    return isEventOverElement(e, document.getElementById('anatomy-panel'));
   }
 
   // === Initialize Components ===
@@ -760,24 +768,69 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function wireAnatomyControls() {
+  function setAnatomyPanelOpen(open) {
     const toggle = document.getElementById('anatomy-toggle');
     const panel = document.getElementById('anatomy-panel');
     const icon = document.getElementById('anatomy-toggle-icon');
+    if (!panel) return;
+    panel.classList.toggle('hidden', !open);
+    if (icon) {
+      icon.classList.toggle('fa-chevron-down', !open);
+      icon.classList.toggle('fa-chevron-up', open);
+    }
+    if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+    if (open && isMobileViewport()) {
+      // Free vertical space: collapse My Stack rail panel when anatomy sheet opens
+      const msPanel = document.getElementById('mystack-panel');
+      const msIcon = document.getElementById('mystack-panel-icon');
+      if (msPanel && !msPanel.classList.contains('hidden')) {
+        msPanel.classList.add('hidden');
+        if (msIcon) msIcon.className = 'fa-solid fa-chevron-down text-[9px]';
+      }
+    }
+  }
+
+  function wireAnatomyControls() {
+    const toggle = document.getElementById('anatomy-toggle');
+    const panel = document.getElementById('anatomy-panel');
+    const closeBtn = document.getElementById('anatomy-sheet-close');
+    const controls = document.getElementById('anatomy-controls');
+
+    // Bubble-phase only (same class as My Stack / BottomSheet #31) — do not use capture
+    const stopBubble = (e) => e.stopPropagation();
+    if (panel && !panel._stopWired) {
+      panel._stopWired = true;
+      panel.addEventListener('click', stopBubble);
+      panel.addEventListener('pointerdown', stopBubble, { passive: true });
+    }
+    if (controls && !controls._stopWired) {
+      controls._stopWired = true;
+      controls.addEventListener('click', stopBubble);
+      controls.addEventListener('pointerdown', stopBubble, { passive: true });
+    }
+
     if (toggle && panel && !toggle._wired) {
       toggle._wired = true;
-      toggle.onclick = () => {
-        const hidden = panel.classList.toggle('hidden');
-        if (icon) {
-          icon.classList.toggle('fa-chevron-down', hidden);
-          icon.classList.toggle('fa-chevron-up', !hidden);
-        }
+      toggle.onclick = (e) => {
+        e.stopPropagation();
+        const willOpen = panel.classList.contains('hidden');
+        setAnatomyPanelOpen(willOpen);
       };
     }
+    if (closeBtn && !closeBtn._wired) {
+      closeBtn._wired = true;
+      closeBtn.onclick = (e) => {
+        e.stopPropagation();
+        setAnatomyPanelOpen(false);
+      };
+    }
+
     document.querySelectorAll('.anatomy-preset').forEach(btn => {
       if (btn._wired) return;
       btn._wired = true;
-      btn.onclick = () => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
         if (treeInstance?.setAnatomyPreset) {
           treeInstance.setAnatomyPreset(btn.dataset.preset);
           syncAnatomySliders();
@@ -794,6 +847,8 @@ document.addEventListener("DOMContentLoaded", () => {
           syncAnatomySliders();
         }
       };
+      // Keep range drags from bubbling into map pan handlers
+      el.addEventListener('pointerdown', (e) => e.stopPropagation(), { passive: true });
     }
     syncAnatomySliders();
   }
@@ -1718,8 +1773,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // On mobile, ignore clicks that hit the bottom sheet overlay
-    if (isEventOverBottomSheet(e)) return;
+    // Ignore clicks that hit the bottom sheet or anatomy overlay
+    if (isEventOverBottomSheet(e) || isEventOverAnatomyPanel(e)) return;
 
     const { x: mx, y: my } = canvasPointer(e);
     const hit = treeInstance.getNodeAt(mx, my);
