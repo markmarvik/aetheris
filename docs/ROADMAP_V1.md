@@ -1,6 +1,6 @@
 # Aetheris Roadmap → v1.0
 
-**Baseline:** ~v0.2.7 / v0.2.8 (this patch) · live: https://markmarvik.github.io/aetheris/  
+**Baseline:** v0.3.0 (My Stack depth + Free/Pro soft scaffold) · live: https://markmarvik.github.io/aetheris/  
 **Goal:** Ship a **v1.0** web product people can explore, personalize, and (optionally) pay for — without native apps or a custom billing backend.
 
 Related: [`IMPROVEMENT_PLAN.md`](./IMPROVEMENT_PLAN.md), [`MONETIZATION_ROADMAP.md`](./MONETIZATION_ROADMAP.md).
@@ -37,10 +37,10 @@ Educational framing only — no medical claims.
 
 ### Phase B — My Stack depth
 
-- [ ] Notes / morning–evening slots on stack entries
-- [ ] Share card (PNG/OG) of current stack
+- [x] Notes / morning–evening slots on stack entries — v0.3.0
+- [x] Share card (PNG) of current stack — Canvas 2D, v0.3.0
 - [ ] Optional waitlist / email capture for future cloud sync
-- [ ] Harden import/merge + empty states
+- [x] Harden import/merge + empty states — v0.3.0
 
 **Exit:** User can build, revisit, and share a personal stack without an account.
 
@@ -62,18 +62,18 @@ Educational framing only — no medical claims.
 
 ### Phase E — Free / Pro gate
 
-- [ ] Feature flags: Free vs Pro (license key or checkout-link entitlement)
-- [ ] Free: full map explore + limited stack size
+- [x] Feature flags: Free vs Pro (license key stub `aetheris-pro-key` + checkout-link placeholder) — v0.3.0 soft scaffold
+- [x] Free: full map explore + soft-limited stack size (warn, no hard block) — v0.3.0
 - [ ] Pro: unlimited stack, PDF export, saved lab specimen filters, early anatomy extras
-- [ ] In-app or static `/pricing` page with external checkout — **no custom billing backend**
+- [x] In-app Pricing modal stub + checkout link placeholder — **no custom billing backend** — v0.3.0
 
 **Exit:** Clear boundary; money can flow via hosted checkout.
 
 ### Phase F — PDF export + analytics + polish
 
-- [ ] Protocol PDF from My Stack (Pro)
-- [ ] Plausible or GA4: page views + constellation switches only
-- [ ] Feedback link (Formspree / Tally) in footer
+- [x] Printable protocol (`window.print` stylesheet) soft-gated — v0.3.0 (PDF polish later)
+- [x] Analytics stub `track()` + constellation hooks; Plausible drop comment in index.html — v0.3.0
+- [x] Feedback link (Tally/Formspree placeholder) in footer — v0.3.0
 - [ ] README Current Status → v1.0; version bump; Pages deploy verified
 
 **Exit:** Tag **v1.0.0** on `main`.
@@ -97,7 +97,8 @@ Educational framing only — no medical claims.
 | Version | Focus |
 |---------|--------|
 | 0.2.8 | Anatomy mobile sheet + this roadmap |
-| 0.3.x | My Stack depth + OrganSystem |
+| 0.3.0 | My Stack depth + Free/Pro soft scaffold + analytics/feedback |
+| 0.3.x | OrganSystem scores (next) |
 | 0.4.x | Anatomy Phase 2 art |
 | 0.5.x | Free/Pro flags + pricing link |
 | 0.9.x | PDF + analytics + polish |
