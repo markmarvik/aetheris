@@ -135,3 +135,7 @@ Concrete path to **v1.0:** [`docs/ROADMAP_V1.md`](docs/ROADMAP_V1.md).
 - See also [`docs/IMPROVEMENT_PLAN.md`](docs/IMPROVEMENT_PLAN.md) and [`docs/MONETIZATION_ROADMAP.md`](docs/MONETIZATION_ROADMAP.md)
 
 Original monolith reference: `/home/tux/aetheris-longevity-tree.html`
+
+
+- Rebrand: [`docs/REBRAND_OPTIONS.md`](docs/REBRAND_OPTIONS.md)
+- 3-month data plan: [`docs/THREE_MONTH_PLAN.md`](docs/THREE_MONTH_PLAN.md)
