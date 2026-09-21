@@ -2,6 +2,7 @@
  * OrganExplode — radial organ spread + active organ → node filter.
  *
  * Hover (desktop) / tap (mobile) the central body to explode organs outward.
+ * Constellation nodes spread radially in sync so they clear the organ ring.
  * Click an organ to filter constellation nodes tagged with that organ:
  *   green = beneficial / positive framing
  *   red   = negative impact (environment, impact==='negative', _isNegative)
@@ -76,6 +77,16 @@ export const ORGAN_HIT_RADIUS = 48;
 
 /** Body ellipse hit pad (world units, same space as BODY_RX/RY). */
 export const BODY_HIT_PAD = 1.08;
+
+/**
+ * Node radial spread during explode (world units).
+ * Inner-ring nodes (~body edge) push farther so organs don't sit on them;
+ * distant nodes push less. Tuned against EXPLODE_LAYOUT radii (~120–175).
+ */
+export const NODE_SPREAD_INNER = 140;
+export const NODE_SPREAD_OUTER = 400;
+export const NODE_SPREAD_PUSH_INNER = 95;
+export const NODE_SPREAD_PUSH_OUTER = 28;
 
 /**
  * Whether a node should light up for the given organ filter.
@@ -217,6 +228,40 @@ export class OrganExplodeController {
       y: lerp(homeY, ty, p)
     };
   }
+
+  /**
+   * Interpolated draw/hit position for a constellation node.
+   * Pushes radially outward from body center (0,0) with the same progress
+   * easing as organs. Closer nodes move more; far nodes less.
+   * Layout home coords are unchanged — call sites use this for draw + hit only.
+   * @param {number} homeX
+   * @param {number} homeY
+   */
+  getNodeDrawPosition(homeX, homeY) {
+    const p = this.progress;
+    if (p < 0.001) return { x: homeX, y: homeY };
+
+    const dist = Math.hypot(homeX, homeY);
+    if (dist < 1) {
+      // Degenerate / on-center: nudge upward
+      return { x: homeX, y: homeY - NODE_SPREAD_PUSH_INNER * p };
+    }
+
+    const ux = homeX / dist;
+    const uy = homeY / dist;
+    const span = NODE_SPREAD_OUTER - NODE_SPREAD_INNER;
+    const t = Math.min(1, Math.max(0, (dist - NODE_SPREAD_INNER) / span));
+    const closeness = 1 - t; // 1 near body, 0 far out
+    const push =
+      NODE_SPREAD_PUSH_OUTER +
+      (NODE_SPREAD_PUSH_INNER - NODE_SPREAD_PUSH_OUTER) * closeness;
+
+    return {
+      x: homeX + ux * push * p,
+      y: homeY + uy * push * p
+    };
+  }
+
 }
 
 export default OrganExplodeController;
