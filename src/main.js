@@ -30,7 +30,9 @@ import {
   setProKey,
   isOverFreeStackLimit,
   softProGate,
+  CHECKOUT_URL,
   PRICING_CHECKOUT_URL,
+  pricingPageUrl,
   FEEDBACK_FORM_URL
 } from "./core/FeatureFlags.js";
 import { track, trackPageView, trackConstellation } from "./core/Analytics.js";
@@ -541,33 +543,84 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // === Map Interaction (Pan + Zoom) - unified pointer events + RAF + inertia (GitHub #12) ===
-  const DRAG_THRESHOLD = 5;
+  const DRAG_THRESHOLD_MOUSE = 5;
+  const DRAG_THRESHOLD_TOUCH = 3;
   let pointerDown = false;
   let isPanning = false;
   let suppressNextClick = false;
   let downX = 0, downY = 0;
   let lastX = 0, lastY = 0;
   let activePointerId = null;
+  let activePointerType = 'mouse';
 
   // Multi-touch state for pinch-to-zoom on phones/tablets
   let activePointers = new Map(); // pointerId -> {x, y}
   let prevPinchDist = 0;
   let isPinching = false;
 
-  // Inertia state (issue #12)
+  // Inertia + velocity (issue #12) — startInertia was previously unused on release
   let lastPanDx = 0;
   let lastPanDy = 0;
+  let lastMoveTs = 0;
+  let velX = 0;
+  let velY = 0;
   let inertiaId = null;
+  let inertiaActive = false;
+
+  // Coalesce pan deltas to one RAF for smoother one-finger drag
+  let pendingPanDx = 0;
+  let pendingPanDy = 0;
+  let panRafId = null;
+
+  function isEventOverMapChrome(e) {
+    // Don't let map gestures steal bottom sheet / anatomy / footer / mystack / modal touches
+    if (isEventOverBottomSheet(e) || isEventOverAnatomyPanel(e)) return true;
+    if (isEventOverElement(e, document.getElementById('mystack-panel'))) return true;
+    if (isEventOverElement(e, document.getElementById('app-footer'))) return true;
+    if (isEventOverElement(e, document.getElementById('pricing-modal'))) return true;
+    if (isEventOverElement(e, document.getElementById('gorkipedia-explorer-modal'))) return true;
+    if (isEventOverElement(e, document.getElementById('right-map-controls'))) return true;
+    if (isEventOverElement(e, document.getElementById('bottom-controls'))) return true;
+    return false;
+  }
+
+  function flushQueuedPan() {
+    panRafId = null;
+    if (!treeInstance) {
+      pendingPanDx = 0;
+      pendingPanDy = 0;
+      return;
+    }
+    if (Math.abs(pendingPanDx) > 0.01 || Math.abs(pendingPanDy) > 0.01) {
+      treeInstance.pan(pendingPanDx, pendingPanDy);
+    }
+    pendingPanDx = 0;
+    pendingPanDy = 0;
+  }
+
+  function queuePan(dx, dy) {
+    pendingPanDx += dx;
+    pendingPanDy += dy;
+    if (!panRafId) panRafId = requestAnimationFrame(flushQueuedPan);
+  }
 
   function stopInertia() {
     if (inertiaId) {
       cancelAnimationFrame(inertiaId);
       inertiaId = null;
     }
+    inertiaActive = false;
+    if (panRafId) {
+      cancelAnimationFrame(panRafId);
+      panRafId = null;
+      pendingPanDx = 0;
+      pendingPanDy = 0;
+    }
     if (treeInstance) treeInstance._isPanning = false;
     lastPanDx = 0;
     lastPanDy = 0;
-    // End any active pinch when stopping gestures
+    velX = 0;
+    velY = 0;
     if (isPinching) {
       isPinching = false;
       prevPinchDist = 0;
@@ -575,21 +628,40 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function startInertia(vx, vy) {
-    stopInertia();
+    // Cancel prior RAF without wiping velocity args
+    if (inertiaId) {
+      cancelAnimationFrame(inertiaId);
+      inertiaId = null;
+    }
+    if (panRafId) {
+      cancelAnimationFrame(panRafId);
+      panRafId = null;
+      flushQueuedPan();
+    }
+    const speed = Math.hypot(vx, vy);
+    if (!treeInstance || speed < 1.2) {
+      inertiaActive = false;
+      if (treeInstance) treeInstance._isPanning = false;
+      return;
+    }
+    inertiaActive = true;
     if (treeInstance) treeInstance._isPanning = true;
-    let curVx = vx * 1.4;
-    let curVy = vy * 1.4;
-    const friction = 0.90;
-    const minVel = 0.25;
+    // Soft boost + clamp so flicks feel lively without runaway slides
+    let curVx = Math.max(-48, Math.min(48, vx * 1.15));
+    let curVy = Math.max(-48, Math.min(48, vy * 1.15));
+    const friction = 0.92;
+    const minVel = 0.35;
     const step = () => {
-      if (Math.abs(curVx) < minVel && Math.abs(curVy) < minVel) {
-        if (treeInstance) treeInstance._isPanning = false;
+      if (!inertiaActive || (Math.abs(curVx) < minVel && Math.abs(curVy) < minVel)) {
+        inertiaActive = false;
         inertiaId = null;
+        if (treeInstance) {
+          treeInstance._isPanning = false;
+          if (typeof treeInstance.draw === 'function') treeInstance.draw();
+        }
         return;
       }
-      if (treeInstance && (Math.abs(curVx) > 0.1 || Math.abs(curVy) > 0.1)) {
-        treeInstance.pan(curVx, curVy);
-      }
+      if (treeInstance) treeInstance.pan(curVx, curVy);
       curVx *= friction;
       curVy *= friction;
       inertiaId = requestAnimationFrame(step);
@@ -603,24 +675,29 @@ document.addEventListener("DOMContentLoaded", () => {
   canvas.addEventListener('pointerdown', (e) => {
     if (!treeInstance) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
-    activePointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    // UI chrome sits above the canvas; if a hit slips through, ignore
+    if (isEventOverMapChrome(e)) return;
+
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
     stopInertia();
+    // New gesture: keep selection stable (inertia must not fake a click later)
+    suppressNextClick = false;
+
     if (activePointers.size >= 2) {
-      // Pinch gesture started
       isPinching = true;
       if (treeInstance) treeInstance._isPanning = true;
       const pts = Array.from(activePointers.values());
       prevPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      // Do not treat as single-finger pan
       pointerDown = false;
       isPanning = false;
       activePointerId = null;
       hoverPopup.hide();
       return;
     }
-    // Single pointer: start potential pan (mouse or touch)
+
     activePointerId = e.pointerId;
+    activePointerType = e.pointerType || 'mouse';
     pointerDown = true;
     isPanning = false;
     if (treeInstance) treeInstance._isPanning = false;
@@ -628,21 +705,19 @@ document.addEventListener("DOMContentLoaded", () => {
     downY = lastY = e.clientY;
     lastPanDx = 0;
     lastPanDy = 0;
-    if (e.pointerType !== 'mouse') {
-      // mobile-ish: hide hover immediately
-      hoverPopup.hide();
-    }
+    lastMoveTs = performance.now();
+    velX = 0;
+    velY = 0;
+    if (e.pointerType !== 'mouse') hoverPopup.hide();
   });
 
   window.addEventListener('pointermove', (e) => {
     if (!treeInstance) return;
-    // Track pointer position if active
     if (activePointers.has(e.pointerId)) {
-      activePointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     }
 
     if (activePointers.size >= 2) {
-      // Pinch-to-zoom (two fingers)
       const pts = Array.from(activePointers.values());
       const currDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       if (prevPinchDist > 5 && currDist > 5) {
@@ -650,17 +725,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const midClientX = (pts[0].x + pts[1].x) / 2;
         const midClientY = (pts[0].y + pts[1].y) / 2;
         const rect = canvas.getBoundingClientRect();
-        const localX = midClientX - rect.left;
-        const localY = midClientY - rect.top;
-        treeInstance.zoomFactor(scaleFactor, localX, localY);
+        treeInstance.zoomFactor(scaleFactor, midClientX - rect.left, midClientY - rect.top);
         prevPinchDist = currDist;
       }
       return;
     }
 
     if (!pointerDown || (activePointerId !== null && e.pointerId !== activePointerId)) return;
+
+    const threshold = (activePointerType === 'touch' || activePointerType === 'pen')
+      ? DRAG_THRESHOLD_TOUCH
+      : DRAG_THRESHOLD_MOUSE;
     const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
-    if (!isPanning && moved > DRAG_THRESHOLD) {
+    if (!isPanning && moved > threshold) {
       isPanning = true;
       if (treeInstance) treeInstance._isPanning = true;
       hoverPopup.hide();
@@ -669,23 +746,32 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isPanning) {
       const dx = e.clientX - lastX;
       const dy = e.clientY - lastY;
-      treeInstance.pan(dx, dy);
+      const now = performance.now();
+      const dt = Math.max(8, Math.min(48, now - (lastMoveTs || now)));
+      // EMA velocity in px/frame (~16ms) for stable inertia on release
+      const frameScale = 16 / dt;
+      const sampleVx = dx * frameScale;
+      const sampleVy = dy * frameScale;
+      velX = velX * 0.65 + sampleVx * 0.35;
+      velY = velY * 0.65 + sampleVy * 0.35;
+      lastMoveTs = now;
       lastPanDx = dx;
       lastPanDy = dy;
       lastX = e.clientX;
       lastY = e.clientY;
-      return; // panning overrides hover
+      queuePan(dx, dy);
+      return;
     }
 
-    // Hover logic (non-pan)
+    // Hover logic (non-pan, mouse only feels natural)
     const { x: mx, y: my } = canvasPointer(e);
     const hit = treeInstance.getNodeAt(mx, my);
     treeInstance.setHover(hit ? hit.id : null);
     if (hit) {
-      canvas.style.cursor = "pointer";
+      canvas.style.cursor = 'pointer';
       if (!isMobileViewport()) hoverPopup.show(hit, e.clientX, e.clientY);
     } else {
-      canvas.style.cursor = "crosshair";
+      canvas.style.cursor = 'crosshair';
       hoverPopup.hide();
     }
   });
@@ -696,41 +782,84 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const wasPinching = isPinching;
     const wasPanning = isPanning;
-    if (wasPinching || wasPanning) suppressNextClick = true;
+    if (wasPinching || wasPanning || inertiaActive) suppressNextClick = true;
 
-    // If fingers lifted, end pinch
+    // Pinch → one finger: hand off to pan without treating as tap
+    if (activePointers.size === 1 && wasPinching) {
+      isPinching = false;
+      prevPinchDist = 0;
+      const [pid, pt] = activePointers.entries().next().value;
+      activePointerId = pid;
+      pointerDown = true;
+      isPanning = false;
+      downX = lastX = pt.x;
+      downY = lastY = pt.y;
+      lastPanDx = 0;
+      lastPanDy = 0;
+      velX = 0;
+      velY = 0;
+      lastMoveTs = performance.now();
+      suppressNextClick = true;
+      if (treeInstance) treeInstance._isPanning = false;
+      return;
+    }
+
     if (activePointers.size < 2) {
       isPinching = false;
       prevPinchDist = 0;
     }
 
-    if (wasPinching || wasPanning) {
-      if (treeInstance) {
-        treeInstance._isPanning = false;
-        // Force a draw after gesture ends (nodes use same simplified rendering)
-        if (typeof treeInstance.draw === 'function') treeInstance.draw();
-      }
-    }
-
     if (activePointers.size === 0) {
+      const releaseVx = velX || lastPanDx;
+      const releaseVy = velY || lastPanDy;
+      const shouldInertia = wasPanning && !wasPinching;
+
       pointerDown = false;
       isPanning = false;
       activePointerId = null;
       lastPanDx = 0;
       lastPanDy = 0;
-      try { if (e && e.pointerId) canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+      try { if (e && e.pointerId != null) canvas.releasePointerCapture(e.pointerId); } catch (_) {}
       canvas.style.cursor = 'grab';
 
-      // Tap-to-select for touch/pen when not panned or pinched
-      // Guard: ignore if the pointer landed inside the mobile bottom sheet (Issues #15/#18)
-      if (!wasPanning && !wasPinching && e && (e.pointerType === 'touch' || e.pointerType === 'pen') && e.clientX != null) {
-        if (isEventOverBottomSheet(e)) return;
+      if (shouldInertia) {
+        // Flush coalesced pan, then fling — keep suppress so inertia never selects
+        if (panRafId) {
+          cancelAnimationFrame(panRafId);
+          panRafId = null;
+          flushQueuedPan();
+        }
+        suppressNextClick = true;
+        startInertia(releaseVx, releaseVy);
+        if (!inertiaActive && treeInstance && typeof treeInstance.draw === 'function') {
+          treeInstance.draw();
+        }
+      } else if (wasPinching || wasPanning) {
+        if (treeInstance) {
+          treeInstance._isPanning = false;
+          if (typeof treeInstance.draw === 'function') treeInstance.draw();
+        }
+      }
+
+      // Tap-to-select for touch/pen when not panned / pinched / flinging
+      if (
+        !wasPanning &&
+        !wasPinching &&
+        !inertiaActive &&
+        e &&
+        (e.pointerType === 'touch' || e.pointerType === 'pen') &&
+        e.clientX != null
+      ) {
+        if (isEventOverMapChrome(e)) return;
         const fake = { clientX: e.clientX, clientY: e.clientY };
         const { x: mx, y: my } = canvasPointer(fake);
         const hit = treeInstance.getNodeAt(mx, my);
         handleNodeSelection(hit || null);
         if (!hit) hoverPopup.hide();
       }
+
+      velX = 0;
+      velY = 0;
     }
   }
 
@@ -750,13 +879,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Legacy mouseup for safety (some edge cases)
   window.addEventListener('mouseup', () => {
-    if (!pointerDown && activePointers.size === 0) return;
-    // covered by pointerup, but ensure
-    if (isPanning) suppressNextClick = true;
+    if (!pointerDown && activePointers.size === 0 && !inertiaActive) return;
+    if (isPanning || inertiaActive) suppressNextClick = true;
+    stopInertia();
     pointerDown = false;
     isPanning = false;
     if (treeInstance) treeInstance._isPanning = false;
-    // Clean any stray pointer state
     activePointers.clear();
     prevPinchDist = 0;
     isPinching = false;
@@ -1865,38 +1993,61 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function populatePrintSheet() {
+    // Ensure organ scores are current before rendering the clean print view
+    recomputeOrganSystem();
     const entries = buildStackEntriesForShare();
     const meta = document.getElementById('mystack-print-meta');
     const tbody = document.querySelector('#mystack-print-table tbody');
+    const organsEl = document.getElementById('mystack-print-organs');
+    const organsEmpty = document.getElementById('mystack-print-organs-empty');
     const wm = document.getElementById('mystack-print-watermark');
+    const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     if (meta) {
-      meta.textContent = `${entries.length} item(s) · ${new Date().toLocaleString()} · Educational only`;
+      const when = new Date().toLocaleString();
+      meta.textContent = `${entries.length} item(s) · ${when} · Educational only · not medical advice`;
     }
     if (tbody) {
-      const esc = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       tbody.innerHTML = entries.map((e) => {
         const slot = e.slot === 'morning' ? 'Morning' : e.slot === 'evening' ? 'Evening' : '—';
         return `<tr>
-          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(e.name)}</td>
-          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(e.constellation)}</td>
-          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(slot)}</td>
-          <td style="padding:6px;border-bottom:1px solid #eee;">${esc(e.note || '—')}</td>
+          <td>${esc(e.name)}</td>
+          <td>${esc(e.constellation)}</td>
+          <td>${esc(slot)}</td>
+          <td>${esc(e.note || '—')}</td>
         </tr>`;
-      }).join('') || '<tr><td colspan="4" style="padding:8px;">Empty stack</td></tr>';
+      }).join('') || '<tr><td colspan="4">Empty stack</td></tr>';
     }
-    if (wm) wm.textContent = isPro() ? 'Aetheris Pro' : 'Free';
+    const ranked = globalOrganSystem.getRanked(16);
+    if (organsEl) {
+      organsEl.innerHTML = ranked.map((row) => {
+        const metaO = organMeta[row.organ] || {};
+        const label = metaO.label || row.organ;
+        return `<li><strong>${esc(label)}</strong> ${esc(formatOrganScore(row.score))} · ${row.count} tag(s)</li>`;
+      }).join('');
+    }
+    if (organsEmpty) {
+      organsEmpty.style.display = ranked.length ? 'none' : 'block';
+    }
+    if (wm) wm.textContent = isPro() ? 'Aetheris Pro' : 'Aetheris Free';
   }
 
   function openPricingModal() {
     const modal = document.getElementById('pricing-modal');
     if (!modal) return;
+    const checkout = CHECKOUT_URL || PRICING_CHECKOUT_URL || '#';
     const link = document.getElementById('pricing-checkout-link');
     if (link) {
-      link.href = PRICING_CHECKOUT_URL || '#pricing-coming-soon';
-      link.textContent = PRICING_CHECKOUT_URL && !PRICING_CHECKOUT_URL.startsWith('#')
-        ? 'Checkout link'
-        : 'Checkout — Coming soon';
+      link.href = checkout.startsWith('#') ? checkout : checkout;
+      link.textContent = checkout && !String(checkout).startsWith('#')
+        ? 'Checkout — Founding Pro $29'
+        : 'Checkout — Coming soon ($29)';
+      if (checkout && !String(checkout).startsWith('#')) {
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+      }
     }
+    const pageLink = document.getElementById('pricing-page-link');
+    if (pageLink) pageLink.href = pricingPageUrl();
     modal.classList.remove('hidden');
     track('pricing_open');
   }
@@ -1918,6 +2069,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (pricingBtn) pricingBtn.onclick = () => openPricingModal();
     const hint = document.getElementById('mystack-pricing-hint');
     if (hint) hint.onclick = () => openPricingModal();
+    const footerPricingPage = document.getElementById('footer-pricing-page');
+    if (footerPricingPage) footerPricingPage.href = pricingPageUrl();
     const closeBtn = document.getElementById('pricing-modal-close');
     if (closeBtn) closeBtn.onclick = () => closePricingModal();
     const modal = document.getElementById('pricing-modal');
@@ -2025,10 +2178,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const printBtn = document.getElementById('mystack-print-btn');
     if (printBtn) {
       printBtn.onclick = () => {
-        const gate = softProGate('Printable protocol');
+        const gate = softProGate('Print protocol');
         if (!gate.pro) showMyStackToast(gate.hint || 'Free print includes a watermark');
         populatePrintSheet();
         track('mystack_print', { count: myStack.getCount(), pro: isPro() });
+        // Clean print view: @media print hides app chrome and shows #mystack-print-sheet only
         window.print();
       };
     }
@@ -2061,13 +2215,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   canvas.addEventListener("click", (e) => {
-    if (suppressNextClick) {
+    if (suppressNextClick || inertiaActive) {
       suppressNextClick = false;
       return;
     }
 
-    // Ignore clicks that hit the bottom sheet or anatomy overlay
-    if (isEventOverBottomSheet(e) || isEventOverAnatomyPanel(e)) return;
+    // Ignore clicks that hit the bottom sheet or anatomy overlay / chrome
+    if (isEventOverMapChrome(e)) return;
 
     const { x: mx, y: my } = canvasPointer(e);
     const hit = treeInstance.getNodeAt(mx, my);

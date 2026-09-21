@@ -10,8 +10,28 @@ export const PRO_LICENSE_KEY = 'aetheris-pro-key';
 /** Free-tier soft ceiling for My Stack size. Soft warning only — never hard-block adds. */
 export const FREE_STACK_LIMIT = 15;
 
-/** Placeholder checkout / pricing CTA — replace with Lemon Squeezy / Stripe Payment Link when live. */
-export const PRICING_CHECKOUT_URL = '#pricing-coming-soon';
+/**
+ * Hosted checkout URL (Lemon Squeezy / Stripe Payment Link).
+ * Prefer Vite env `VITE_CHECKOUT_URL`; falls back to `#` placeholder.
+ */
+export const CHECKOUT_URL =
+  (typeof import.meta !== 'undefined' &&
+    import.meta.env &&
+    import.meta.env.VITE_CHECKOUT_URL &&
+    String(import.meta.env.VITE_CHECKOUT_URL).trim()) ||
+  '#';
+
+/** @deprecated alias — use CHECKOUT_URL */
+export const PRICING_CHECKOUT_URL = CHECKOUT_URL;
+
+/** Static pricing page (copied from public/ → site root). */
+export function pricingPageUrl() {
+  const base =
+    typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL
+      ? import.meta.env.BASE_URL
+      : '/';
+  return `${base}pricing.html`;
+}
 
 /** Feedback form placeholder — swap for Tally / Formspree URL when ready. */
 export const FEEDBACK_FORM_URL = 'https://tally.so/r/wAetherisFeedbackPlaceholder';
@@ -59,7 +79,9 @@ export function softProGate(featureLabel = 'this feature') {
 export const FeatureFlags = {
   FREE_STACK_LIMIT,
   PRO_LICENSE_KEY,
+  CHECKOUT_URL,
   PRICING_CHECKOUT_URL,
+  pricingPageUrl,
   FEEDBACK_FORM_URL,
   isPro,
   setProKey,

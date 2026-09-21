@@ -63,16 +63,11 @@ export class BottomSheet {
 
     this._attachDrag();
 
-    // Stop bubble to canvas AFTER children handle the event (no capture — #31 buttons must fire first)
+    // Stop bubble AFTER children handle the event (no capture — #31 buttons must fire first).
+    // Whole-sheet click/pointerdown so map chrome doesn't fight; do NOT stop move/up (sheet drag uses window listeners).
     const stopBubble = (e) => e.stopPropagation();
-    if (this.previewEl) {
-      this.previewEl.addEventListener('click', stopBubble);
-      this.previewEl.addEventListener('pointerdown', stopBubble, { passive: true });
-    }
-    if (this.fullEl) {
-      this.fullEl.addEventListener('click', stopBubble);
-      this.fullEl.addEventListener('pointerdown', stopBubble, { passive: true });
-    }
+    this.sheetEl.addEventListener('click', stopBubble);
+    this.sheetEl.addEventListener('pointerdown', stopBubble, { passive: true });
 
     // Start fully closed
     this._setHeight(0, true);

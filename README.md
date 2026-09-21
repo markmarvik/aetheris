@@ -2,19 +2,22 @@
 
 Refactored multi-file version of the original single-file AETHERIS experience.
 
-## Current Status (v0.3.0)
+## Current Status (v0.3.1)
 
 **Map UX (multi-constellation):**
 - Body-centric canvas: central human figure with nodes in organ rings
 - Constellations: Supplements, Habits, Exercises, Foods, Environment, **Biomarkers**
 - Biomarkers cover blood + urine + saliva (+ other) via `specimen_type` (Issue #14)
 - **My Stack depth (v0.3.0)**: notes + morning/evening slots, import replace/merge, empty states, Canvas PNG share card, printable protocol
+- **Touch pan polish (v0.3.1)**: RAF-coalesced drag, inertia on release, chrome ignore (bottom sheet / anatomy), pinch→one-finger handoff
+- **Static pricing (v0.3.1)**: `/pricing.html` Free vs Founding Pro $29 + footer/modal links (`CHECKOUT_URL` / `VITE_CHECKOUT_URL` stub)
+- **Print protocol (v0.3.1)**: cleaner `@media print` + organ coverage scores
 - **Free/Pro soft scaffold**: `FeatureFlags` + localStorage license key stub; soft stack-limit warnings (no hard paywall); Pricing modal “Coming soon”
 - **Analytics + feedback**: `track()` stub + constellation hooks; footer Feedback (Tally placeholder)
 - **Layered anatomy** (Issue #16 Phase 1): independent opacity for base / organs / skeleton / muscles + view presets; **mobile** opens as fixed bottom sheet (v0.2.8)
 - **Organ impact** (v0.3.0): My Stack → tagged systems coverage strip + anatomy highlight
 - HiDPI rendering via `CanvasViewport` (sharp nodes and labels)
-- 2D pan (drag), zoom (wheel / +/-), recenter (`r`)
+- 2D pan (drag + inertia), zoom toward pointer (wheel / pinch / +/-), recenter (`r`)
 - Dynamic layout: larger nodes closer to body, collision + body keep-out settling
 - Category group toggles on the map (+ specimen filters for Biomarkers)
 - `HoverPopup` on hover and click (pinned until click away or Esc)
