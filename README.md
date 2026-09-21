@@ -2,7 +2,7 @@
 
 Refactored multi-file version of the original single-file AETHERIS experience.
 
-## Current Status (v0.3.5)
+## Current Status (v0.3.6)
 
 **Map UX (multi-constellation):**
 - Body-centric canvas: central human figure with nodes in organ rings
@@ -22,6 +22,7 @@ Refactored multi-file version of the original single-file AETHERIS experience.
 - **Organ explode (v0.3.3+)**: hover/tap the central body to spread organs; constellation nodes also spread radially so they clear the organ ring; click an organ to highlight linked nodes (green = beneficial framing, red = harmful / negative) — educational “nodes linked to this organ” only
 - **Explode node spread (v0.3.4)**: nodes ease outward with the same explode progress (closer-to-body nodes move more)
 - **Explode organ spacing (v0.3.5)**: retuned organ ring (staggered radii + even-ish angles) so exploded sprites no longer stack; node push bumped to clear the wider ring
+- **Explode node labels (v0.3.6)**: score/value text inside nodes uses the same explode draw position as circles (BiomarkerTree override was lagging at home coords)
 - HiDPI rendering via `CanvasViewport` (sharp nodes and labels)
 - 2D pan (drag + inertia), zoom toward pointer (wheel / pinch / +/-), recenter (`r`)
 - Dynamic layout: larger nodes closer to body, collision + body keep-out settling
