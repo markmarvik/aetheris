@@ -22,6 +22,7 @@ import { HoverPopup } from "./components/HoverPopup.js";
 import { ExplorerModal } from "./components/ExplorerModal.js";
 import { BottomSheet } from "./components/BottomSheet.js";
 import { personalizedScore } from "./core/ScoringEngine.js";
+import { myStack } from "./core/MyStack.js";
 
 // Import Tailwind + custom styles (processed by Vite)
 import './style.css';
@@ -92,6 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const bottomSheet = new BottomSheet().init();
 
   // Expose globally for inline onclick handlers in the HTML
+  myStack.load();
   window.AETHERIS = {
     popup: hoverPopup,
     modal: explorerModal,
@@ -99,7 +101,8 @@ document.addEventListener("DOMContentLoaded", () => {
     tree: treeInstance,
     ORGAN_META: organMeta,
     currentConstellation: 'supplements',
-    categories: categories
+    categories: categories,
+    myStack
   };
 
   // === Constellation switching (modular) ===
@@ -993,6 +996,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         ${extraInfo}
 
+        <div class="mt-3" id="mystack-inspector-row">
+          <button id="mystack-toggle-node-btn" type="button"
+                  class="w-full text-xs py-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/15 text-amber-200">
+            Add to My Stack
+          </button>
+        </div>
+
         <div class="mt-3 flex gap-2">
           <button id="open-explorer-btn" 
                   class="flex-1 text-xs py-2 rounded-2xl border ${isNegative ? 'border-red-400/40 bg-red-400/10 hover:bg-red-400/15 text-red-300' : 'border-violet-400/40 bg-violet-400/10 hover:bg-violet-400/15 text-violet-300'}">
@@ -1081,6 +1091,28 @@ document.addEventListener("DOMContentLoaded", () => {
       };
       extBtn.innerHTML = 'Read full monograph ↗';
       extBtn.title = 'Open Gorkipedia (or Examine fallback) for full details';
+    }
+
+    // My Stack: add/remove current node
+    const stackBtn = container.querySelector('#mystack-toggle-node-btn');
+    if (stackBtn) {
+      const c = currentTreeType || 'supplements';
+      const inStack = myStack.has(node.id, c);
+      stackBtn.textContent = inStack ? 'Remove from My Stack' : 'Add to My Stack';
+      stackBtn.className = inStack
+        ? 'w-full text-xs py-2 rounded-2xl border border-white/20 hover:bg-white/10 text-white/80'
+        : 'w-full text-xs py-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/15 text-amber-200';
+      stackBtn.onclick = () => {
+        myStack.toggle(node.id, c);
+        // refresh label + badge + canvas
+        const nowIn = myStack.has(node.id, c);
+        stackBtn.textContent = nowIn ? 'Remove from My Stack' : 'Add to My Stack';
+        stackBtn.className = nowIn
+          ? 'w-full text-xs py-2 rounded-2xl border border-white/20 hover:bg-white/10 text-white/80'
+          : 'w-full text-xs py-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 hover:bg-amber-400/15 text-amber-200';
+        if (typeof window.AETHERIS?.refreshMyStackUI === 'function') window.AETHERIS.refreshMyStackUI();
+        if (treeInstance) treeInstance.draw();
+      };
     }
   }
 
@@ -1470,8 +1502,71 @@ document.addEventListener("DOMContentLoaded", () => {
     window.AETHERIS.personalizedScore = (n) => (typeof personalizedScore === 'function' ? personalizedScore(n, personalData) : null);
   }
 
+
+  // =====================================================
+  // MY STACK (Phase 1 minimal) — localStorage + highlight + export
+  // =====================================================
+  function refreshMyStackUI() {
+    const badge = document.getElementById('mystack-count-badge');
+    if (badge) badge.textContent = String(myStack.getCount());
+    const hlBtn = document.getElementById('mystack-highlight-btn');
+    const hlLabel = document.getElementById('mystack-highlight-label');
+    if (hlLabel) hlLabel.textContent = myStack.highlightMode ? 'Highlight on' : 'Highlight off';
+    if (hlBtn) {
+      hlBtn.classList.toggle('border-amber-400/50', myStack.highlightMode);
+      hlBtn.classList.toggle('bg-amber-400/10', myStack.highlightMode);
+      hlBtn.classList.toggle('text-amber-100', myStack.highlightMode);
+    }
+  }
+
+  function initMyStack() {
+    const panelBtn = document.getElementById('mystack-toggle-panel');
+    const panel = document.getElementById('mystack-panel');
+    const panelIcon = document.getElementById('mystack-panel-icon');
+    if (panelBtn && panel) {
+      panelBtn.onclick = () => {
+        const open = panel.classList.toggle('hidden') === false;
+        if (panelIcon) panelIcon.className = open ? 'fa-solid fa-chevron-up text-[9px]' : 'fa-solid fa-chevron-down text-[9px]';
+      };
+    }
+    const hlBtn = document.getElementById('mystack-highlight-btn');
+    if (hlBtn) {
+      hlBtn.onclick = () => {
+        myStack.toggleHighlightMode();
+        refreshMyStackUI();
+        if (treeInstance) treeInstance.draw();
+      };
+    }
+    const exportBtn = document.getElementById('mystack-export-btn');
+    if (exportBtn) {
+      exportBtn.onclick = () => {
+        const blob = new Blob([myStack.exportJSON()], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'aetheris-my-stack.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+    }
+    const clearBtn = document.getElementById('mystack-clear-btn');
+    if (clearBtn) {
+      clearBtn.onclick = () => {
+        if (!myStack.getCount()) return;
+        if (!confirm('Clear your entire My Stack?')) return;
+        myStack.clear();
+        refreshMyStackUI();
+        if (treeInstance) treeInstance.draw();
+      };
+    }
+    myStack.subscribe(() => refreshMyStackUI());
+    refreshMyStackUI();
+    window.AETHERIS.refreshMyStackUI = refreshMyStackUI;
+  }
+
   // Call init after other UI setup
   initPersonalCorner();
+  initMyStack();
 
   window.AETHERIS.tree = treeInstance;
 
