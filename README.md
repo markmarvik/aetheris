@@ -2,13 +2,14 @@
 
 Refactored multi-file version of the original single-file AETHERIS experience.
 
-## Current Status (v0.2.8)
+## Current Status (v0.3.0)
 
 **Map UX (multi-constellation):**
 - Body-centric canvas: central human figure with nodes in organ rings
 - Constellations: Supplements, Habits, Exercises, Foods, Environment, **Biomarkers**
 - Biomarkers cover blood + urine + saliva (+ other) via `specimen_type` (Issue #14)
 - **Layered anatomy** (Issue #16 Phase 1): independent opacity for base / organs / skeleton / muscles + view presets; **mobile** opens as fixed bottom sheet (v0.2.8)
+- **Organ impact** (v0.3.0): My Stack → tagged systems coverage strip + anatomy highlight
 - HiDPI rendering via `CanvasViewport` (sharp nodes and labels)
 - 2D pan (drag), zoom (wheel / +/-), recenter (`r`)
 - Dynamic layout: larger nodes closer to body, collision + body keep-out settling
@@ -120,7 +121,7 @@ Concrete path to **v1.0:** [`docs/ROADMAP_V1.md`](docs/ROADMAP_V1.md).
 - ~~Layered anatomy Phase 1~~ (opacity presets + placeholders) — #16
 - ~~Anatomy mobile bottom sheet~~ — v0.2.8: fixed overlay on phone (`#anatomy-panel`, z-100); desktop right-rail unchanged
 - Layered anatomy Phase 2: photoreal spine/kidneys/MSK art + limb detail
-- `OrganSystem` cumulative organ impact across trees
+- ~~`OrganSystem` cumulative organ impact across trees~~ — v0.3.0: My Stack rollup + inspector/stack strip
 - ~~My Stack (localStorage + highlight + export/import + preview Add)~~ — v0.2.7: bottom-sheet button clicks fixed (bubble-phase stopPropagation); preview one-tap Add; panel list + Import JSON
 - See also [`docs/IMPROVEMENT_PLAN.md`](docs/IMPROVEMENT_PLAN.md) and [`docs/MONETIZATION_ROADMAP.md`](docs/MONETIZATION_ROADMAP.md)
 
