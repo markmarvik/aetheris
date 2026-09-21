@@ -2,7 +2,7 @@
 
 Refactored multi-file version of the original single-file AETHERIS experience.
 
-## Current Status (v0.2.5)
+## Current Status (v0.2.7)
 
 **Map UX (multi-constellation):**
 - Body-centric canvas: central human figure with nodes in organ rings
@@ -118,7 +118,7 @@ Replace placeholders with transparent PNGs (same scale language as existing orga
 - ~~Layered anatomy Phase 1~~ (opacity presets + placeholders) — #16
 - Layered anatomy Phase 2: photoreal spine/kidneys/MSK art + limb detail
 - `OrganSystem` cumulative organ impact across trees
-- ~~My Stack (localStorage + highlight + export)~~
+- ~~My Stack (localStorage + highlight + export/import + preview Add)~~ — v0.2.7: bottom-sheet button clicks fixed (bubble-phase stopPropagation); preview one-tap Add; panel list + Import JSON
 - See [`docs/IMPROVEMENT_PLAN.md`](docs/IMPROVEMENT_PLAN.md) and [`docs/MONETIZATION_ROADMAP.md`](docs/MONETIZATION_ROADMAP.md)
 
 Original monolith reference: `/home/tux/aetheris-longevity-tree.html`
