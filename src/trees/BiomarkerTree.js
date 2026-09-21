@@ -97,10 +97,13 @@ export class BiomarkerTree extends SupplementTree {
     return super._getNodeColor ? super._getNodeColor(node) : '#94a3b8';
   }
 
-  _drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue }) {
+  _drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue, x, y }) {
     if (r < 10) return;
 
     const val = node.displayValue || String(node.vitality ?? '');
+    // Use explode draw pos when provided (same as circle / label / hit-test)
+    const dx = x ?? node.x;
+    const dy = y ?? node.y;
     const fsVit = Math.round(Math.max(7, Math.min(12, r * 0.48)));
 
     ctx.textAlign = 'center';
@@ -113,6 +116,6 @@ export class BiomarkerTree extends SupplementTree {
     else if (node.status === 'optimal') color = '#bbf7d0';
 
     ctx.fillStyle = isDimmed ? '#6b7280' : (isSelected ? '#e0f2fe' : color);
-    ctx.fillText(val, node.x, node.y);
+    ctx.fillText(val, dx, dy);
   }
 }

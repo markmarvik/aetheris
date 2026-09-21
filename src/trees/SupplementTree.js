@@ -623,6 +623,8 @@ export class SupplementTree extends BaseTree {
 
   /**
    * Draw centered vitality score inside node.
+   * Pass draw-space x/y (e.g. from organExplode.getNodeDrawPosition) so subclasses
+   * that override this method keep numbers glued to the circle during explode.
    */
   _drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue, x, y }) {
     if (r < 10) return;
