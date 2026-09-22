@@ -12,6 +12,7 @@ import { exercises, exerciseCategories } from "./data/exercises.js";
 import { foods, foodCategories } from "./data/foods.js";
 import { environment, environmentCategories } from "./data/environment.js";
 import { biomarkers, biomarkerCategories, specimenTypes } from "./data/biomarkers.js";
+import { searchCatalog, STARTER_STACKS, CATALOG } from "./data/catalog.js";
 import { SupplementTree } from "./trees/SupplementTree.js";
 import { HabitsTree } from "./trees/HabitsTree.js";
 import { ExerciseTree } from "./trees/ExerciseTree.js";
@@ -38,6 +39,8 @@ import {
 } from "./core/FeatureFlags.js";
 import { track, trackPageView, trackConstellation } from "./core/Analytics.js";
 import { downloadStackShareCard } from "./core/ShareCard.js";
+import { PRODUCT_NAME, PUBLIC_HOST_LABEL } from "./core/Brand.js";
+import { readStorage, writeStorage } from "./core/persist.js";
 
 // Import Tailwind + custom styles (processed by Vite)
 import './style.css';
@@ -616,6 +619,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isEventOverElement(e, document.getElementById('first-run-tip'))) return true;
     if (isEventOverElement(e, document.getElementById('gorkipedia-explorer-modal'))) return true;
     if (isEventOverElement(e, document.getElementById('right-map-controls'))) return true;
+    if (isEventOverElement(e, document.getElementById('node-search'))) return true;
     if (isEventOverElement(e, document.getElementById('bottom-controls'))) return true;
     return false;
   }
@@ -1027,7 +1031,46 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function setRailMode(mode) {
+    const root = document.getElementById('right-map-controls');
+    if (!root) return;
+    const next = mode === 'body' || mode === 'stack' ? mode : 'map';
+    root.dataset.rail = next;
+    root.querySelectorAll('[data-rail-btn]').forEach((btn) => {
+      const on = btn.dataset.railBtn === next;
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    if (isMobileViewport()) return;
+    setAnatomyPanelOpen(next === 'body');
+    const panel = document.getElementById('mystack-panel');
+    const icon = document.getElementById('mystack-panel-icon');
+    if (panel) {
+      const open = next === 'stack';
+      panel.classList.toggle('hidden', !open);
+      if (icon) {
+        icon.className = open
+          ? 'fa-solid fa-chevron-up text-[9px]'
+          : 'fa-solid fa-chevron-down text-[9px]';
+      }
+    }
+  }
+
+  function wireRailModes() {
+    const root = document.getElementById('right-map-controls');
+    if (!root || root._railWired) return;
+    root._railWired = true;
+    if (!root.dataset.rail) root.dataset.rail = 'map';
+    root.querySelectorAll('[data-rail-btn]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setRailMode(btn.dataset.railBtn);
+      });
+    });
+  }
+
   function wireAnatomyControls() {
+    wireRailModes();
     const toggle = document.getElementById('anatomy-toggle');
     const panel = document.getElementById('anatomy-panel');
     const closeBtn = document.getElementById('anatomy-sheet-close');
@@ -1368,7 +1411,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const isEnv = node._isEnvironment || node.cat && ['air-pollution','heavy-metals'].includes(node.cat);
         const prefix = isEnv ? 'Avoid exposure to' : ((node._isBiomarker || node._isBlood) ? 'Track biomarker' : node.name + ' scores');
         const score = node.vitality || node.longevity || node.current || '';
-        const txt = `${prefix} ${node.name} ${score ? '— ' + score : ''} on AETHERIS. ${node.blurb ? node.blurb.slice(0,120) : ''} aetheris.app 🧬`;
+        const txt = `${prefix} ${node.name} ${score ? '— ' + score : ''} on ${PRODUCT_NAME}. ${node.blurb ? node.blurb.slice(0,120) : ''} ${PUBLIC_HOST_LABEL} 🧬`;
         navigator.clipboard?.writeText(txt).catch(()=>{});
         const xUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(txt)}`;
         window.open(xUrl, '_blank', 'width=560,height=420');
@@ -1472,11 +1515,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // All logic client-side (no server upload).
   // =====================================================
   let personalData = {};
-  const PERSONAL_STORAGE_KEY = 'aetheris-personal-v1';
+  const PERSONAL_STORAGE_KEY = 'stackmap-personal-v1';
+  const LEGACY_PERSONAL_STORAGE_KEY = 'aetheris-personal-v1';
 
   function loadPersonalData() {
     try {
-      const raw = localStorage.getItem(PERSONAL_STORAGE_KEY);
+      const raw = readStorage(PERSONAL_STORAGE_KEY, [LEGACY_PERSONAL_STORAGE_KEY]);
       personalData = raw ? JSON.parse(raw) : {};
     } catch (e) {
       personalData = {};
@@ -1486,9 +1530,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function savePersonalData() {
-    try {
-      localStorage.setItem(PERSONAL_STORAGE_KEY, JSON.stringify(personalData));
-    } catch (e) {}
+    writeStorage(PERSONAL_STORAGE_KEY, JSON.stringify(personalData));
   }
 
   function computeBMI(p = personalData) {
@@ -1752,14 +1794,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!panel || !header) return;
 
     // #6 simple first-time onboarding for Personal Corner
-    const seen = localStorage.getItem('aetheris-personal-onboarded');
+    const seen = readStorage('stackmap-personal-onboarded', ['aetheris-personal-onboarded']);
     const hasData = Object.keys(personalData || {}).some(k => personalData[k] !== '' && personalData[k] != null);
     if (!seen && !hasData) {
       const note = document.createElement('div');
       note.className = 'mt-2 p-2 text-[10px] bg-emerald-900/30 border border-emerald-400/30 rounded-xl text-emerald-200/90';
       note.innerHTML = 'Welcome! Enter your stats below for personalized scores &amp; insights across all constellations. All data stays in your browser.';
       panel.insertBefore(note, panel.firstChild);
-      localStorage.setItem('aetheris-personal-onboarded', '1');
+      writeStorage('stackmap-personal-onboarded', '1');
       // auto clear after interaction
       setTimeout(() => { if (note.parentNode) note.parentNode.removeChild(note); }, 8000);
     }
@@ -2124,7 +2166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (organsEmpty) {
       organsEmpty.style.display = ranked.length ? 'none' : 'block';
     }
-    if (wm) wm.textContent = isPro() ? 'Aetheris Pro' : 'Aetheris Free';
+    if (wm) wm.textContent = isPro() ? `${PRODUCT_NAME} Pro` : `${PRODUCT_NAME} Free`;
   }
 
   function openPricingModal() {
@@ -2153,28 +2195,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (modal) modal.classList.add('hidden');
   }
 
-  const FIRST_RUN_TIP_KEY = 'aetheris-first-run-tip-v1';
+  const FIRST_RUN_TIP_KEY = 'stackmap-first-run-tip-v1';
+  const LEGACY_FIRST_RUN_TIP_KEY = 'aetheris-first-run-tip-v1';
 
   function dismissFirstRunTip() {
     const tip = document.getElementById('first-run-tip');
     if (tip) tip.classList.add('hidden');
-    try { localStorage.setItem(FIRST_RUN_TIP_KEY, '1'); } catch (_) { /* ignore */ }
+    writeStorage(FIRST_RUN_TIP_KEY, '1');
     track('first_run_tip_dismiss');
   }
 
   function initFirstRunTip() {
-    try {
-      if (localStorage.getItem(FIRST_RUN_TIP_KEY) === '1') return;
-    } catch (_) {
-      return;
-    }
+    if (readStorage(FIRST_RUN_TIP_KEY, [LEGACY_FIRST_RUN_TIP_KEY]) === '1') return;
     const tip = document.getElementById('first-run-tip');
     if (!tip) return;
     // Show after loading overlay settles
     setTimeout(() => {
-      try {
-        if (localStorage.getItem(FIRST_RUN_TIP_KEY) === '1') return;
-      } catch (_) { return; }
+      if (readStorage(FIRST_RUN_TIP_KEY, [LEGACY_FIRST_RUN_TIP_KEY]) === '1') return;
       tip.classList.remove('hidden');
       track('first_run_tip_show');
     }, 900);
@@ -2235,6 +2272,8 @@ document.addEventListener("DOMContentLoaded", () => {
     window.AETHERIS.myStack = myStack;
     window.AETHERIS.toggleMyStackNode = toggleMyStackNode;
     window.AETHERIS.refreshMyStackUI = refreshMyStackUI;
+    renderStarterStacks();
+    initNodeSearch();
 
     const panelBtn = document.getElementById('mystack-toggle-panel');
     const panel = document.getElementById('mystack-panel');
@@ -2260,7 +2299,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'aetheris-my-stack.json';
+        a.download = 'stackmap-my-stack.json';
         a.click();
         URL.revokeObjectURL(url);
         track('mystack_export');
@@ -2399,8 +2438,132 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // === Keyboard shortcuts (polish + power user delight) ===
-  window.addEventListener('keydown', (e) => {
+  function openCatalogNode(constellation, id) {
+    if (currentTreeType !== constellation) switchConstellation(constellation);
     if (!treeInstance) return;
+    const node = (treeInstance.nodes || []).find((n) => n.id === id);
+    if (!node) return;
+    if (node.cat && typeof treeInstance.setGroupEnabled === 'function') {
+      treeInstance.setGroupEnabled(node.cat, true);
+    }
+    const visible = typeof treeInstance._getVisibleNodes === 'function'
+      ? treeInstance._getVisibleNodes()
+      : treeInstance.nodes;
+    if (treeInstance.maxNodes > 0 && !visible.some((n) => n.id === id)) {
+      treeInstance.setMaxNodes(0);
+      renderNodeLimitControl();
+    }
+    const placed = (typeof treeInstance._getVisibleNodes === 'function'
+      ? treeInstance._getVisibleNodes()
+      : treeInstance.nodes
+    ).find((n) => n.id === id) || node;
+    treeInstance.select(placed.id);
+    if (typeof treeInstance.centerOn === 'function') treeInstance.centerOn(placed);
+    handleNodeSelection(placed);
+    syncGroupFilterChips();
+  }
+
+  function initNodeSearch() {
+    const input = document.getElementById('node-search-input');
+    const results = document.getElementById('node-search-results');
+    if (!input || !results || input._wired) return;
+    input._wired = true;
+
+    const close = () => {
+      results.classList.add('hidden');
+      results.innerHTML = '';
+    };
+
+    const render = () => {
+      const hits = searchCatalog(input.value, 8);
+      if (!input.value.trim() || !hits.length) {
+        close();
+        return;
+      }
+      results.classList.remove('hidden');
+      const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+      results.innerHTML = hits.map((hit) => `
+        <button type="button" data-constellation="${esc(hit.constellation)}" data-id="${esc(hit.id)}"
+                class="w-full text-left px-3 py-1.5 hover:bg-white/10 border-b border-white/5 last:border-0">
+          <div class="text-xs text-white/90">${esc(hit.name)}</div>
+          <div class="text-[9px] uppercase tracking-wider text-white/40">${esc(hit.constellation)}${hit.cat ? ' · ' + esc(hit.cat) : ''}</div>
+        </button>
+      `).join('');
+      results.querySelectorAll('button').forEach((btn) => {
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          openCatalogNode(btn.dataset.constellation, btn.dataset.id);
+          close();
+          input.blur();
+          track('node_search_open', { constellation: btn.dataset.constellation, id: btn.dataset.id });
+        };
+      });
+    };
+
+    input.addEventListener('input', render);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        close();
+        input.blur();
+      } else if (e.key === 'Enter') {
+        const first = results.querySelector('button');
+        if (first) first.click();
+      }
+    });
+    input.addEventListener('focus', render);
+    document.addEventListener('pointerdown', (e) => {
+      if (!document.getElementById('node-search')?.contains(e.target)) close();
+    });
+  }
+
+  function renderStarterStacks() {
+    const mount = document.getElementById('starter-stack-list');
+    if (!mount || mount._wired) return;
+    mount._wired = true;
+    const known = new Set(CATALOG.map((n) => `${n.constellation}::${n.id}`));
+    mount.innerHTML = STARTER_STACKS.map((stack) => {
+      const count = stack.items.filter((item) => known.has(`${item.constellation}::${item.id}`)).length;
+      return `
+        <button type="button" data-starter="${stack.id}"
+                class="text-left px-1.5 py-1 rounded-lg border border-white/10 hover:bg-white/5">
+          <div class="text-[10px] text-amber-100/90">${stack.name} <span class="text-white/35 font-mono">${count}</span></div>
+          <div class="text-[8px] text-white/40 leading-snug">${stack.blurb}</div>
+        </button>`;
+    }).join('');
+    mount.querySelectorAll('[data-starter]').forEach((btn) => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const stack = STARTER_STACKS.find((s) => s.id === btn.dataset.starter);
+        if (!stack) return;
+        let added = 0;
+        for (const item of stack.items) {
+          if (!known.has(`${item.constellation}::${item.id}`)) continue;
+          const res = myStack.add(item.id, item.constellation, item.slot ? { slot: item.slot } : {});
+          if (res.ok && !res.already) added += 1;
+        }
+        refreshMyStackUI();
+        if (treeInstance) treeInstance.draw();
+        showMyStackToast(added ? `Added ${added} from ${stack.name}` : `${stack.name} already in your stack`);
+        track('starter_stack_apply', { id: stack.id, added });
+        if (!isMobileViewport()) setRailMode('stack');
+      };
+    });
+  }
+
+  window.addEventListener('keydown', (e) => {
+    const tag = e.target && e.target.tagName;
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable);
+    if (typing) return;
+    if (!treeInstance) return;
+    if (e.key === '/') {
+      const input = document.getElementById('node-search-input');
+      if (input) {
+        e.preventDefault();
+        input.focus();
+        input.select();
+      }
+      return;
+    }
     if (e.key === 'Escape') {
       hoverPopup.hide();
       if (treeInstance && typeof treeInstance.clearOrganExplode === 'function') {

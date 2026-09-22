@@ -7,9 +7,12 @@
  */
 
 import { FREE_STACK_LIMIT, isOverFreeStackLimit } from './FeatureFlags.js';
+import { readStorage, writeStorage } from './persist.js';
 
-const STORAGE_KEY = 'aetheris-mystack-v1';
-const HIGHLIGHT_KEY = 'aetheris-mystack-highlight';
+const STORAGE_KEY = 'stackmap-mystack-v1';
+const LEGACY_STORAGE_KEY = 'aetheris-mystack-v1';
+const HIGHLIGHT_KEY = 'stackmap-mystack-highlight';
+const LEGACY_HIGHLIGHT_KEY = 'aetheris-mystack-highlight';
 const SCHEMA_VERSION = 1;
 
 /** @deprecated Prefer FREE_STACK_LIMIT from FeatureFlags — kept as alias. */
@@ -57,7 +60,7 @@ export class MyStackStore {
 
   load() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = readStorage(STORAGE_KEY, [LEGACY_STORAGE_KEY]);
       if (raw) {
         const parsed = JSON.parse(raw);
         this.profile = this._migrate(parsed);
@@ -67,11 +70,7 @@ export class MyStackStore {
     } catch {
       this.profile = emptyProfile();
     }
-    try {
-      this.highlightMode = localStorage.getItem(HIGHLIGHT_KEY) === '1';
-    } catch {
-      this.highlightMode = false;
-    }
+    this.highlightMode = readStorage(HIGHLIGHT_KEY, [LEGACY_HIGHLIGHT_KEY]) === '1';
     this._rebuildIndex();
     this._emit();
     return this;
@@ -103,11 +102,7 @@ export class MyStackStore {
   _persist() {
     this.profile.updatedAt = new Date().toISOString();
     this.profile.schemaVersion = SCHEMA_VERSION;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.profile));
-    } catch (e) {
-      console.warn('[AETHERIS] MyStack persist failed', e);
-    }
+    writeStorage(STORAGE_KEY, JSON.stringify(this.profile));
     this._emit();
   }
 
@@ -220,9 +215,7 @@ export class MyStackStore {
 
   setHighlightMode(on) {
     this.highlightMode = !!on;
-    try {
-      localStorage.setItem(HIGHLIGHT_KEY, this.highlightMode ? '1' : '0');
-    } catch { /* ignore */ }
+    writeStorage(HIGHLIGHT_KEY, this.highlightMode ? '1' : '0');
     this._emit();
   }
 
@@ -236,7 +229,8 @@ export class MyStackStore {
       {
         schemaVersion: SCHEMA_VERSION,
         exportedAt: new Date().toISOString(),
-        app: 'aetheris',
+        app: 'stackmap',
+        legacyApp: 'aetheris',
         selectedNodes: this.profile.selectedNodes
       },
       null,

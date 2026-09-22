@@ -16,3 +16,34 @@
 .constellation-btn {
   border: 1px solid transparent;
 }
+
+.rail-mode {
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  padding: 0.3rem 0.15rem;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.rail-mode.active {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.4);
+  color: #f4e9c8;
+}
+
+/* Desktop rail shows one tool. Phone keeps the stacked column (max-md sheets). */
+@media (min-width: 768px) {
+  #right-map-controls[data-rail="map"] #anatomy-controls,
+  #right-map-controls[data-rail="map"] #mystack-controls {
+    display: none;
+  }
+  #right-map-controls[data-rail="body"] #constellation-picker,
+  #right-map-controls[data-rail="body"] #mystack-controls {
+    display: none;
+  }
+  #right-map-controls[data-rail="stack"] #constellation-picker,
+  #right-map-controls[data-rail="stack"] #anatomy-controls {
+    display: none;
+  }
+}

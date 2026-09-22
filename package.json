@@ -1,7 +1,7 @@
 {
   "name": "aetheris",
-  "version": "0.3.6",
-  "description": "AETHERIS - Modular Longevity Constellation Platform",
+  "version": "0.3.8",
+  "description": "StackMap (formerly Aetheris) — longevity constellation map",
   "type": "module",
   "engines": {
     "node": ">=24"

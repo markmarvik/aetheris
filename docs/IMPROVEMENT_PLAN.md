@@ -1,7 +1,7 @@
 # Aetheris Improvement Plan
 
 **Status:** living doc · updated 2026-09-21  
-**Product:** Modular Longevity Constellation (Vite + canvas) · https://markmarvik.github.io/aetheris/
+**Product:** Modular Longevity Constellation (Vite + canvas) · https://markmarvik.github.io/stackmap/
 
 ## Current baseline (post #14 / #16 Phase 1)
 
@@ -10,7 +10,7 @@
 | Constellations | Supplements, Habits, Exercise, Foods, Biomarkers (multi-specimen), Environment |
 | Map UX | HiDPI canvas, pan/zoom, filters, hover + inspector, mobile bottom sheet |
 | Anatomy | Layered renderer + opacity presets; **placeholder** organ/skeleton/muscle art |
-| Deploy | GitHub Pages via Actions (Node 24), base `/aetheris/` |
+| Deploy | GitHub Pages via Actions (Node 24), base `/stackmap/` |
 | Auth / accounts | None |
 | Payments | None |
 | Persistence | Client-only (share/personalization not a paid loop yet) |

@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build for production (uses /aetheris/ base)
+      - name: Build for production (uses /stackmap/ base)
         run: npm run build
 
       - name: Setup Pages

@@ -1,8 +1,13 @@
-# AETHERIS — Modular Longevity Constellation Platform
+# StackMap — Longevity Constellation
 
-Refactored multi-file version of the original single-file AETHERIS experience.
+Formerly **Aetheris**. Repository: **https://github.com/markmarvik/stackmap**. Live site: **https://markmarvik.github.io/stackmap/**.
 
-## Current Status (v0.3.6)
+`github.com/markmarvik/aetheris` redirects to this repo. The old Pages address does not.
+
+## Current Status (v0.3.8)
+
+**Find + starters (v0.3.8):** search any node (`/` focuses the box) and jump to it, including across constellations. My Stack includes five starter sets (Sleep base, Foundation, Train, Plate, First labs) that merge into the saved stack.
+**Shell (v0.3.7):** product name StackMap across the map, pricing, print, and share card. Browser data copies forward from `aetheris-*` localStorage keys. Desktop right rail is Map / Body / Stack — one tool at a time. Phone keeps the stacked column.
 
 **Map UX (multi-constellation):**
 - Body-centric canvas: central human figure with nodes in organ rings
@@ -34,7 +39,7 @@ Refactored multi-file version of the original single-file AETHERIS experience.
 
 **Development (recommended):**
 ```bash
-cd aetheris
+cd stackmap
 npm install
 npm run dev
 ```
@@ -66,9 +71,9 @@ npm run preview
 
 ## Deployment on GitHub Pages
 
-This project is hosted on GitHub Pages at: **https://markmarvik.github.io/aetheris/**
+This project is hosted on GitHub Pages at: **https://markmarvik.github.io/stackmap/**
 
-The site uses a production `base` of `/aetheris/` so all JS, CSS, and asset URLs (including body PNG layers) are correct for the sub-path.
+The site uses a production `base` of `/stackmap/` so all JS, CSS, and asset URLs (including body PNG layers) are correct for the sub-path.
 
 ### Requirements
 - **Node.js 24+** (enforced via `package.json#engines` and `.nvmrc`)
@@ -85,7 +90,7 @@ npm run preview
 ### GitHub Pages Deployment
 A GitHub Actions workflow builds the project with **Node 24** on every push to `main` and deploys only the `dist/` folder.
 
-- `vite.config.js` sets the correct base for the `/aetheris/` subpath.
+- `vite.config.js` sets the correct base for the `/stackmap/` subpath.
 - `public/.nojekyll` is present to prevent Jekyll processing.
 - Workflow uses `actions/setup-node` (v24), `npm ci`, `npm run build`, and the official `actions/deploy-pages`.
 
@@ -96,7 +101,7 @@ A GitHub Actions workflow builds the project with **Node 24** on every push to `
 
 After the setting change, push to `main` (or run the workflow manually from the Actions tab). The site should update within a couple of minutes.
 
-All built assets (JS modules, CSS, body PNGs) are emitted under `/aetheris/assets/...`.
+All built assets (JS modules, CSS, body PNGs) are emitted under `/stackmap/assets/...`.
 
 
 ## Anatomy assets (Issue #16)

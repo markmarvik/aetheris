@@ -5,7 +5,7 @@
 | Primary | **StackMap** |
 | Backup | SomaStack |
 | Locked | 2026-09-21 |
-| Legacy | Aetheris (repo / GH Pages path until cutover) |
+| Legacy | Aetheris (git redirect from `markmarvik/aetheris`) |
 
 ## Claim same day
 
@@ -14,8 +14,8 @@
 - [ ] Instagram `@stackmap`
 - [ ] TikTok `@stackmap`
 - [ ] Domain `stackmap.app` or best available
-- [ ] Bio → https://markmarvik.github.io/aetheris/ (until domain cutover)
+- [ ] Bio → https://markmarvik.github.io/stackmap/
 
-## Cutover later
+## Cutover
 
-Separate PR: titles, OG tags, pricing copy, optional repo rename. Keep redirects if URL changes.
+Repo renamed to `stackmap` (v0.3.8). Pages path is `/stackmap/`. The old Pages URL is not redirected. See `docs/UI_SYSTEM_OVERHAUL.md`.

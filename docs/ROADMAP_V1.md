@@ -1,6 +1,6 @@
 # Aetheris Roadmap → v1.0
 
-**Baseline:** v0.3.6 (explode node labels follow circles; v0.3.5 organ spacing; v0.3.4 node spread; v0.3.3 organ explode + filter) · live: https://markmarvik.github.io/aetheris/  
+**Baseline:** v0.3.8 (repo `stackmap`, node search, starter stacks) · live: https://markmarvik.github.io/stackmap/  
 **Goal:** Ship a **v1.0** web product people can explore, personalize, and (optionally) pay for — without native apps or a custom billing backend.
 
 Related: [`IMPROVEMENT_PLAN.md`](./IMPROVEMENT_PLAN.md), [`MONETIZATION_ROADMAP.md`](./MONETIZATION_ROADMAP.md).
@@ -118,6 +118,8 @@ Educational framing only — no medical claims.
 | 0.3.4 | Explode spreads constellation nodes radially with organs |
 | 0.3.5 | Explode organ spacing (no sprite stack) + node-push retune |
 | 0.3.6 | Explode: node score/value text moves with spread circles |
+| 0.3.7 | StackMap surface + storage migration; desktop Map / Body / Stack rail |
+| 0.3.8 | Repo rename to `stackmap`; node search; five starter stacks |
 | 0.4.x | Anatomy Phase 2 art |
 | 0.5.x | Live checkout URL + stronger Pro perks |
 | 0.9.x | Analytics live + polish |

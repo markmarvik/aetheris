@@ -3,6 +3,8 @@
  * No html2canvas / heavy deps — pure Canvas 2D.
  */
 
+import { PRODUCT_NAME, PUBLIC_HOST_LABEL } from './Brand.js';
+
 /**
  * @typedef {{ id: string, constellation: string, note?: string, slot?: string, name?: string }} StackCardEntry
  */
@@ -46,7 +48,7 @@ export async function downloadStackShareCard(entries, opts = {}) {
   // Title
   ctx.fillStyle = '#f4e9c8';
   ctx.font = 'bold 28px system-ui, -apple-system, sans-serif';
-  ctx.fillText(opts.title || 'AETHERIS · My Stack', pad, 44);
+  ctx.fillText(opts.title || `${PRODUCT_NAME} · My Stack`, pad, 44);
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
   ctx.font = '14px system-ui, -apple-system, sans-serif';
   ctx.fillText(`${list.length} item${list.length === 1 ? '' : 's'} · educational map only`, pad, 70);
@@ -75,7 +77,7 @@ export async function downloadStackShareCard(entries, opts = {}) {
   // Footer / Free watermark
   ctx.fillStyle = 'rgba(255,255,255,0.25)';
   ctx.font = '12px system-ui, -apple-system, sans-serif';
-  ctx.fillText('markmarvik.github.io/aetheris', pad, H - 18);
+  ctx.fillText(PUBLIC_HOST_LABEL, pad, H - 18);
   if (!opts.isPro) {
     ctx.fillStyle = 'rgba(245,158,11,0.55)';
     ctx.font = 'bold 12px system-ui, -apple-system, sans-serif';
@@ -89,7 +91,7 @@ export async function downloadStackShareCard(entries, opts = {}) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'aetheris-my-stack.png';
+  a.download = 'stackmap-my-stack.png';
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
   return { ok: true };

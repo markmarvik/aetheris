@@ -214,7 +214,7 @@ export class ExplorerModal {
     const shareBtn = actionsRow.querySelector('#modal-share-btn');
     if (shareBtn) {
       shareBtn.onclick = () => {
-        const txt = `${node.name} scores ${node.vitality || node.longevity} VS on AETHERIS. ${node.blurb || ''} aetheris.app 🧬`;
+        const txt = `${node.name} scores ${node.vitality || node.longevity} VS on StackMap. ${node.blurb || ''} markmarvik.github.io/stackmap 🧬`;
         navigator.clipboard?.writeText(txt).catch(()=>{});
         window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(txt)}`, '_blank', 'width=560,height=420');
       };

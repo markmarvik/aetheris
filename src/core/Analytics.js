@@ -10,15 +10,9 @@
  *   <script defer data-domain="markmarvik.github.io" src="https://plausible.io/js/script.js"></script>
  */
 
-const DEBUG =
-  typeof localStorage !== 'undefined' &&
-  (() => {
-    try {
-      return localStorage.getItem('aetheris-analytics-debug') === '1';
-    } catch {
-      return false;
-    }
-  })();
+import { readStorage } from './persist.js';
+
+const DEBUG = readStorage('stackmap-analytics-debug', ['aetheris-analytics-debug']) === '1';
 
 /**
  * Track a named event with optional props.
