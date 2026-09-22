@@ -4,7 +4,9 @@ Formerly **Aetheris**. Repository: **https://github.com/markmarvik/stackmap**. L
 
 `github.com/markmarvik/aetheris` redirects to this repo. The old Pages address does not.
 
-## Current Status (v0.3.8)
+## Current Status (v0.3.9)
+
+**All nodes (v0.3.9):** the Map list includes **All nodes**, one map of every constellation, framed to the screen. The crosshairs button fits whatever is visible. Names show when you zoom in; `/` still jumps to a node. New nodes landed in every constellation, and a few headline supplement lines were rewritten so they do not read like guaranteed extra years.
 
 **Find + starters (v0.3.8):** search any node (`/` focuses the box) and jump to it, including across constellations. My Stack includes five starter sets (Sleep base, Foundation, Train, Plate, First labs) that merge into the saved stack.
 **Shell (v0.3.7):** product name StackMap across the map, pricing, print, and share card. Browser data copies forward from `aetheris-*` localStorage keys. Desktop right rail is Map / Body / Stack — one tool at a time. Phone keeps the stacked column.

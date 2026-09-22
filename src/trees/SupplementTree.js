@@ -31,6 +31,52 @@ export class SupplementTree extends BaseTree {
   /** Safety margin on body ellipse so nodes never clip the silhouette. */
   static BODY_MARGIN = 1.12;
 
+  /** Organs named in data that should sit on a real body anchor. */
+  static ORGAN_ALIAS = {
+    cardiovascular: 'heart',
+    vascular: 'heart',
+    vessels: 'heart',
+    blood: 'heart',
+    systemic: 'immune',
+    endocrine: 'thyroid',
+    hormones: 'thyroid',
+    hormone: 'thyroid',
+    repro: 'gut',
+    ovaries: 'gut',
+    prostate: 'gut',
+    breast: 'lungs',
+    metabolic: 'pancreas',
+    metabolism: 'pancreas',
+    'blood-sugar': 'pancreas',
+    tendons: 'joints',
+    shoulders: 'joints',
+    legs: 'bones',
+    core: 'muscle',
+    mouth: 'brain',
+    teeth: 'brain',
+    breath: 'lungs',
+    respiratory: 'lungs',
+    pleura: 'lungs',
+    'bone-marrow': 'bones',
+    bone_marrow: 'bones',
+    bone: 'bones',
+    bladder: 'kidneys',
+    dna: 'mito',
+    cell_membranes: 'mito',
+    herpes: 'immune',
+    iron: 'liver',
+    'heavy-metals': 'liver',
+    'cancer-all': 'immune',
+    colon: 'gut',
+    recovery: 'muscle',
+    sleep: 'brain',
+    grip: 'muscle',
+    hips: 'joints',
+    airway: 'lungs',
+    calves: 'muscle',
+    zinc: 'immune'
+  };
+
   // PNG layered body (GitHub issue #2).
   // PNG body is the only version.
 
@@ -210,7 +256,7 @@ export class SupplementTree extends BaseTree {
   }
 
   setMaxNodes(n) {
-    this.maxNodes = Math.max(0, Math.min(200, n | 0));
+    this.maxNodes = Math.max(0, Math.min(800, n | 0));
     this._afterGroupChange();
   }
 
@@ -560,8 +606,10 @@ export class SupplementTree extends BaseTree {
 
     visible.forEach(node => {
       let assigned = false;
-      for (const o of node.organs || []) {
-        if (organGroups[o] !== undefined) {
+      for (const raw of node.organs || []) {
+        const alias = SupplementTree.ORGAN_ALIAS[raw];
+        const o = organGroups[raw] !== undefined ? raw : alias;
+        if (o && organGroups[o] !== undefined) {
           organGroups[o].push(node);
           assigned = true;
           break;
@@ -626,8 +674,9 @@ export class SupplementTree extends BaseTree {
    * Pass draw-space x/y (e.g. from organExplode.getNodeDrawPosition) so subclasses
    * that override this method keep numbers glued to the circle during explode.
    */
-  _drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue, x, y }) {
-    if (r < 10) return;
+  _drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue, x, y, scale = 1 }) {
+    if (!isSelected && r * scale < 7) return;
+    if (r < 8) return;
 
     const vit = String(node.vitality ?? '');
     const dx = x ?? node.x;
@@ -754,9 +803,12 @@ export class SupplementTree extends BaseTree {
       const groupColor = this._getNodeColor(node);
       // My Stack highlight mode: dim nodes not in the user's personal stack
       const stack = (typeof window !== 'undefined' && window.AETHERIS && window.AETHERIS.myStack) || null;
-      const constellation = (typeof window !== 'undefined' && window.AETHERIS && window.AETHERIS.currentConstellation) || 'supplements';
-      const inStack = !!(stack && typeof stack.has === 'function' && stack.has(node.id, constellation));
-      let isDimmed = !!(stack && typeof stack.shouldDim === 'function' && stack.shouldDim(node.id, constellation));
+      const constellation = node._constellation
+        || (typeof window !== 'undefined' && window.AETHERIS && window.AETHERIS.currentConstellation)
+        || 'supplements';
+      const stackId = node._sourceId || node.id;
+      const inStack = !!(stack && typeof stack.has === 'function' && stack.has(stackId, constellation));
+      let isDimmed = !!(stack && typeof stack.shouldDim === 'function' && stack.shouldDim(stackId, constellation));
       const isHighValue = node.vitality > 82;
 
       // Organ explode filter: linked nodes get green/red rings; others dim
@@ -806,14 +858,17 @@ export class SupplementTree extends BaseTree {
 
       ctx.shadowBlur = 0;
 
-      this._drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue, x: nx, y: ny });
+      this._drawNodeScore(ctx, node, r, { isDimmed, isSelected, isHighValue, x: nx, y: ny, scale });
 
       const labelSize = Math.round(Math.max(8, Math.min(11, r * 0.38)));
-      ctx.fillStyle = isDimmed ? "#6b7280" : (isSelected ? "#f4e9c8" : "#e5e7eb");
-      ctx.font = `${isSelected ? 700 : 600} ${labelSize}px Inter, system-ui, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(node.short, nx, ny - r - 4);
+      const showLabel = isSelected || isHovered || (labelSize * scale >= 7.5);
+      if (showLabel) {
+        ctx.fillStyle = isDimmed ? "#6b7280" : (isSelected ? "#f4e9c8" : "#e5e7eb");
+        ctx.font = `${isSelected ? 700 : 600} ${labelSize}px Inter, system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(node.short, nx, ny - r - 4);
+      }
 
       if (isDimmed) ctx.globalAlpha = 1;
 
@@ -1393,7 +1448,7 @@ export class SupplementTree extends BaseTree {
       const dy = pos.y - worldY;
 
       // Cache the dynamic padding radius computation
-      const r = (n.radius || 18) + 10;
+      const r = Math.max((n.radius || 18) + 6, 8 / scale);
 
       // Performance optimization: Avoid repeating multiplication inside conditional check
       if ((dx * dx + dy * dy) < (r * r)) {
@@ -1514,7 +1569,50 @@ export class SupplementTree extends BaseTree {
   }
 
   resetView() {
-    this.view = { panX: 0, panY: 0, scale: 0.92 };
+    this.fitToNodes();
+  }
+
+  /** Frame every visible node inside the canvas, clear of the right rail and top search. */
+  fitToNodes() {
+    const nodes = typeof this._getVisibleNodes === 'function' ? this._getVisibleNodes() : (this.nodes || []);
+    const { width: w, height: h } = this.getLogicalSize();
+    if (!w || !h) {
+      this.view = { panX: 0, panY: 0, scale: 0.92 };
+      this.draw();
+      return;
+    }
+    let minX = -50;
+    let maxX = 50;
+    let minY = -90;
+    let maxY = 90;
+    for (const n of nodes) {
+      const pad = (n.radius || 14) + 16;
+      const x = n.x || 0;
+      const y = n.y || 0;
+      if (x - pad < minX) minX = x - pad;
+      if (x + pad > maxX) maxX = x + pad;
+      if (y - pad < minY) minY = y - pad;
+      if (y + pad > maxY) maxY = y + pad;
+    }
+    const bw = Math.max(80, maxX - minX);
+    const bh = Math.max(80, maxY - minY);
+    const narrow = w < 780;
+    const insetL = narrow ? 8 : 16;
+    const insetR = narrow ? 156 : 176;
+    const insetT = narrow ? 92 : 78;
+    const insetB = narrow ? 120 : 56;
+    const availW = Math.max(80, w - insetL - insetR);
+    const availH = Math.max(80, h - insetT - insetB);
+    const scale = Math.max(0.12, Math.min(1.05, Math.min(availW / bw, availH / bh)));
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const targetX = insetL + availW / 2;
+    const targetY = insetT + availH / 2;
+    this.view = {
+      panX: cx - (targetX - w / 2) / scale,
+      panY: cy - (targetY - h / 2) / scale,
+      scale
+    };
     this._rafPending = false;
     if (this._rafId) { cancelAnimationFrame(this._rafId); this._rafId = null; }
     this.draw();
@@ -1531,6 +1629,6 @@ export class SupplementTree extends BaseTree {
 
   recenter() {
     this.computeLayout();
-    this.resetView();
+    this.fitToNodes();
   }
 }

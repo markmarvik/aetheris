@@ -1,3 +1,5 @@
+import { SUPPLEMENT_WAVE } from './wave2.js';
+
 /**
  * SUPPLEMENTS NODE TEMPLATE — Inspector & Modal Compatibility Contract
  *
@@ -78,8 +80,8 @@
  * Full rich dataset (mechanisms, gorkipedia entries, studies, etc.).
  */
 
-export const supplements = [
-      { id: "omega3", name: "Omega-3 EPA/DHA", short: "OMEGA-3", cat: "cardio", longevity: 92, qol: 81, diseases: 14, organs: ["heart", "brain", "eyes"], evidence: "5/5", blurb: "Landmark studies link higher Omega-3 Index to +4.7 years life expectancy. Potent anti-inflammatory. Protects telomeres and brain membranes.",
+const supplementsCore = [
+      { id: "omega3", name: "Omega-3 EPA/DHA", short: "OMEGA-3", cat: "cardio", longevity: 92, qol: 81, diseases: 14, organs: ["heart", "brain", "eyes"], evidence: "5/5", blurb: "Higher blood EPA+DHA tracks with lower cardiovascular risk in cohorts. A modeled “extra years” figure is not a promise that a capsule adds that time.",
         vitality: 92,
         mechanisms: ["Lowers triglycerides & blood pressure", "Resolves chronic inflammation via resolvins", "Maintains neuronal membrane fluidity", "Supports telomere length", "Improves HRV and endothelial function", "Modulates eicosanoid balance toward resolution"],
         studies: [{year:2021, finding:"+4.7y life expectancy at high Omega-3 Index (AJCN)", source:"Meta of cohorts"}, {year:2023, finding:"Reduced all-cause & CV mortality (REDUCE-IT follow-up)", source:"RCT"}, {year:2024, finding:"Lower brain atrophy rates in older adults with higher DHA (imaging cohorts)", source:"Neurology meta"}],
@@ -91,7 +93,7 @@ export const supplements = [
         bestForms: "rTG (re-esterified triglyceride) or natural triglyceride forms; IFOS 5-star rated brands for purity.",
         deficiencySigns: "Dry skin, poor concentration, joint stiffness, elevated triglycerides, low mood, cardiovascular risk markers.",
         absorption: "Fat-soluble; take with dietary fat. Emulsified or enteric forms improve tolerability and uptake." },
-      { id: "vitd", name: "Vitamin D3", short: "VIT D3", cat: "immune", longevity: 86, qol: 74, diseases: 11, organs: ["bones", "immune", "muscle", "heart"], evidence: "5/5", blurb: "Meta-analyses show 16% reduction in all-cause mortality. Critical for immune modulation, bone density, and mood regulation.",
+      { id: "vitd", name: "Vitamin D3", short: "VIT D3", cat: "immune", longevity: 86, qol: 74, diseases: 11, organs: ["bones", "immune", "muscle", "heart"], evidence: "5/5", blurb: "Repletion matters when 25(OH)D is low. Trials in people who are already replete show smaller effects than early mortality headlines suggested. Test, then dose.",
         vitality: 86,
         mechanisms: ["Gene expression via VDR", "Immune tolerance & antimicrobial peptides", "Calcium homeostasis in muscle & bone", "Anti-proliferative effects", "Modulates innate/adaptive immunity balance", "Upregulates neurotrophic factors"],
         studies: [{year:2022, finding:"16% lower all-cause mortality in supplemented adults (meta 52 trials)", source:"BMJ"}, {year:2024, finding:"Reduced respiratory infection & autoimmune risk", source:"Large RCTs"}, {year:2023, finding:"Falls reduction & improved muscle function in elderly (meta)", source:"JAMA Internal Med"}],
@@ -147,7 +149,7 @@ export const supplements = [
         bestForms: "Ubiquinol (Kaneka) for >40yo; Ubiquinone fine for young. Softgels with oil.",
         deficiencySigns: "Fatigue, exercise intolerance, statin-associated muscle symptoms, heart failure progression, brain fog.",
         absorption: "Fat soluble; enhanced with lipids. Ubiquinol has ~2-3x better absorption in older adults." },
-      { id: "taurine", name: "Taurine", short: "TAURINE", cat: "mito", longevity: 85, qol: 71, diseases: 9, organs: ["heart", "eyes", "muscle", "brain"], evidence: "4/5", blurb: "Landmark 2023 Science paper: Taurine deficiency is a driver of aging. Supports mitochondrial health, eyes, and cardiac function.",
+      { id: "taurine", name: "Taurine", short: "TAURINE", cat: "mito", longevity: 85, qol: 71, diseases: 9, organs: ["heart", "eyes", "muscle", "brain"], evidence: "4/5", blurb: "A 2023 Science paper found taurine falls with age in several species and that supplementation helped those models. Human outcome trials are still early. Eyes, heart, and training recovery are the practical reasons people take 1–3 g.",
         mechanisms: ["Mitochondrial calcium buffering", "Osmoregulation & membrane stability", "Antioxidant (hypochlorous acid scavenger)", "Bile acid conjugation & eye health", "Anti-fibrotic & anti-inflammatory in heart", "Supports GABA & inhibitory tone"],
         studies: [{year:2023, finding:"Taurine deficiency drives aging across species (Science)", source:"Landmark paper"}, {year:2024, finding:"Improved muscle & metabolic markers in humans", source:"Pilot trials"}, {year:2022, finding:"Reduced BP & improved cardiac output in prehypertension (meta)", source:"Hypertension Research"}],
         dosage: "1–3 g daily (often 2–3 g split)", synergies: ["magnesium", "creatine", "coq10", "omega3"],
@@ -157,7 +159,7 @@ export const supplements = [
         bestForms: "Pure L-Taurine powder or capsules; no need for 'taurinate' forms usually.",
         deficiencySigns: "Fatigue, vision issues (esp. night), muscle cramps, elevated oxidative stress, poorer exercise recovery.",
         absorption: "Well absorbed orally; high doses may be limited by renal excretion — split doses optimal." },
-      { id: "nmn", name: "NMN (Nicotinamide)", short: "NMN", cat: "mito", longevity: 78, qol: 73, diseases: 6, organs: ["mito", "brain", "heart"], evidence: "3/5", blurb: "Potent NAD+ precursor. Improves cellular energy, DNA repair, and sirtuin activation in human trials. Rapidly rising evidence.",
+      { id: "nmn", name: "NMN (Nicotinamide)", short: "NMN", cat: "mito", longevity: 78, qol: 73, diseases: 6, organs: ["mito", "brain", "heart"], evidence: "3/5", blurb: "Raises NAD+ in human pharmacokinetic studies. Outcome trials are small and short. Not a proven lifespan drug. Methyl support (TMG) is the usual companion if you push the dose.",
         mechanisms: ["NAD+ repletion → sirtuin & PARPs", "Mitochondrial biogenesis", "DNA repair & epigenetic reset", "Improves vascular endothelial function", "Supports circadian gene expression"],
         studies: [{year:2023, finding:"Improved insulin sensitivity & muscle NAD+ in older adults", source:"Cell Metab & others"}, {year:2024, finding:"Biological age markers improved in small human trials", source:"Pilot data"}, {year:2023, finding:"Increased NAD+ levels & physical performance in 60+ adults (RCT)", source:"Frontiers in Nutrition"}],
         dosage: "500–1000 mg daily (morning, sublingual or with fat for absorption)", synergies: ["tmg", "resveratrol", "akg", "urolithin"],
@@ -961,9 +963,9 @@ export const supplements = [
         absorption: "Saturable transporter; above ~200-400mg per dose most is excreted. The excess oxalate is the issue." }
     ];
 
+export const supplements = supplementsCore.concat(SUPPLEMENT_WAVE);
 
-
-// 80 supplements total: 60 beneficial (expanded + added) + 20 harmful/mistakenly taken (impact: 'negative' for red warning UI, low scores, harm mechanisms/studies/gorkipedia)
+// Core set plus the v0.3.9 wave. Includes harmful / mistakenly-taken nodes (impact: 'negative').
 
 export const categories = [
   { key: "all", label: "ALL", icon: "fa-infinity" },
@@ -1006,5 +1008,21 @@ export const organMeta = {
   kidneys: { label: "Kidneys", color: "#f87171", icon: "fa-tint" },
   pancreas: { label: "Pancreas", color: "#fbbf24", icon: "fa-droplet" },
   adrenal: { label: "Adrenal", color: "#f472b6", icon: "fa-bolt" },
-  adrenals: { label: "Adrenals", color: "#f472b6", icon: "fa-bolt" }
+  adrenals: { label: "Adrenals", color: "#f472b6", icon: "fa-bolt" },
+  endocrine: { label: "Endocrine", color: "#f472b6", icon: "fa-venus-mars" },
+  repro: { label: "Reproductive", color: "#fb7185", icon: "fa-venus-mars" },
+  cardiovascular: { label: "Cardiovascular", color: "#f87171", icon: "fa-heart" },
+  vascular: { label: "Vessels", color: "#f87171", icon: "fa-heart" },
+  vessels: { label: "Vessels", color: "#f87171", icon: "fa-heart" },
+  systemic: { label: "Systemic", color: "#e879f9", icon: "fa-shield-alt" },
+  metabolic: { label: "Metabolic", color: "#fbbf24", icon: "fa-chart-line" },
+  metabolism: { label: "Metabolism", color: "#fbbf24", icon: "fa-chart-line" },
+  mouth: { label: "Mouth", color: "#f9a8d4", icon: "fa-tooth" },
+  tendons: { label: "Tendons", color: "#f472b6", icon: "fa-bone" },
+  blood: { label: "Blood", color: "#fb7185", icon: "fa-tint" },
+  prostate: { label: "Prostate", color: "#fb7185", icon: "fa-venus-mars" },
+  ovaries: { label: "Ovaries", color: "#fb7185", icon: "fa-venus-mars" },
+  grip: { label: "Grip", color: "#fb923c", icon: "fa-hand" },
+  hips: { label: "Hips", color: "#f472b6", icon: "fa-bone" },
+  calves: { label: "Calves", color: "#fb923c", icon: "fa-dumbbell" }
 };

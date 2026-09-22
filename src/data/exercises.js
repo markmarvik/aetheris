@@ -2,7 +2,9 @@
 // Focused on exercise *types* and *cardio intensity levels* (not 100s of named lifts).
 // Designed to reuse the SupplementTree / body-centric visualization.
 
-export const exercises = [
+import { EXERCISE_WAVE } from './wave2.js';
+
+const exercisesCore = [
   { id: "lift3x", name: "Full Body Strength 3x/Week", short: "LIFT 3X", cat: "strength", longevity: 91, qol: 86, diseases: 10, organs: ["muscle", "bones", "heart", "brain", "spine"], evidence: "5/5",
     blurb: "The highest-ROI resistance protocol for longevity. Reverses sarcopenia, improves metabolic health, bone density and cognitive resilience.",
     mechanisms: ["Myokine signaling", "mTOR/autophagy balance", "Mechanical loading on bone", "Insulin sensitivity"],
@@ -243,6 +245,8 @@ export const exercises = [
     gorkipedia: "Gorkipedia Entry: The lengthening phase is where the magic (and most adaptation) happens. Slow it down.",
     risks: "Significant DOMS if introduced abruptly. Great for tendons once adapted." }
 ];
+
+export const exercises = exercisesCore.concat(EXERCISE_WAVE);
 
 export const exerciseCategories = [
   { key: "all", label: "ALL", icon: "fa-infinity" },

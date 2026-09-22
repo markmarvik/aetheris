@@ -19,6 +19,8 @@ import { ExerciseTree } from "./trees/ExerciseTree.js";
 import { FoodsTree } from "./trees/FoodsTree.js";
 import { EnvironmentTree } from "./trees/EnvironmentTree.js";
 import { BiomarkerTree } from "./trees/BiomarkerTree.js";
+import { AllTree, allCategories } from "./trees/AllTree.js";
+import { buildUniverse } from "./data/universe.js";
 import { HoverPopup } from "./components/HoverPopup.js";
 import { ExplorerModal } from "./components/ExplorerModal.js";
 import { BottomSheet } from "./components/BottomSheet.js";
@@ -134,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === Constellation switching (modular) ===
   let currentTreeType = 'supplements';
-  const VALID_CONSTELLATIONS = ['supplements', 'habits', 'exercises', 'foods', 'environment', 'biomarkers'];
+  const VALID_CONSTELLATIONS = ['all', 'supplements', 'habits', 'exercises', 'foods', 'environment', 'biomarkers'];
 
   function syncConstellationQuery(type) {
     try {
@@ -188,14 +190,32 @@ document.addEventListener("DOMContentLoaded", () => {
       treeInstance.dispose();
     }
 
+    const isAll = type === 'all';
     const isSupplements = type === 'supplements';
     const isExercises = type === 'exercises';
     const isFoods = type === 'foods';
     const isEnvironment = type === 'environment';
     const isBiomarkers = type === 'biomarkers';
 
+    const allHint = document.getElementById('all-nodes-hint');
+    if (allHint) allHint.classList.toggle('hidden', type !== 'all');
+
     // Create the right tree class
-    if (isSupplements) {
+    if (isAll) {
+      treeInstance = new AllTree(canvas);
+      bindTreeViewport(treeInstance);
+      const universe = buildUniverse([
+        ['supplements', supplements],
+        ['habits', habits],
+        ['exercises', exercises],
+        ['foods', foods],
+        ['environment', environment],
+        ['biomarkers', biomarkers]
+      ]);
+      treeInstance.loadData(universe);
+      validateTreeData(universe, 'all');
+      window.AETHERIS.categories = allCategories;
+    } else if (isSupplements) {
       treeInstance = new SupplementTree(canvas);
       bindTreeViewport(treeInstance);
       treeInstance.loadData(supplements);
@@ -251,7 +271,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Clear detail panel
     if (detailPanel) {
-      const label = isBiomarkers ? 'biomarkers' : (isEnvironment ? 'environment' : (isFoods ? 'foods' : (isExercises ? 'exercises' : (isSupplements ? 'supplements' : 'habits'))));
+      const label = isAll ? 'full' : (isBiomarkers ? 'biomarkers' : (isEnvironment ? 'environment' : (isFoods ? 'foods' : (isExercises ? 'exercises' : (isSupplements ? 'supplements' : 'habits')))));
       detailPanel.innerHTML = `<div class="text-white/60">Select a node on the ${label} map</div>`;
     }
 
@@ -265,12 +285,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateConstellationButtons(activeType) {
+    const allMapBtn = document.getElementById('btn-constellation-all');
     const supBtn = document.getElementById('btn-constellation-supplements');
     const habBtn = document.getElementById('btn-constellation-habits');
     const exBtn = document.getElementById('btn-constellation-exercises');
     const foodBtn = document.getElementById('btn-constellation-foods');
     const envBtn = document.getElementById('btn-constellation-environment');
     const biomarkersBtn = document.getElementById('btn-constellation-biomarkers');
+    if (allMapBtn) allMapBtn.classList.toggle('active', activeType === 'all');
     if (supBtn) supBtn.classList.toggle('active', activeType === 'supplements');
     if (habBtn) habBtn.classList.toggle('active', activeType === 'habits');
     if (exBtn) exBtn.classList.toggle('active', activeType === 'exercises');
@@ -465,7 +487,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (legacy && legacy.parentNode) legacy.parentNode.removeChild(legacy);
 
     const current = treeInstance.maxNodes || 0;
-    const val = current > 0 ? current : 80;
+    const totalNodes = (treeInstance.nodes || []).length || 80;
+    const sliderMax = Math.min(400, Math.max(40, Math.ceil(totalNodes / 5) * 5));
+    const val = current > 0 ? Math.min(current, sliderMax) : Math.min(80, sliderMax);
 
     if (mobile) {
       // Vertical layout for max slider width: header row (TOP + value + ALL) above the full-width slider.
@@ -478,14 +502,14 @@ document.addEventListener("DOMContentLoaded", () => {
               <button id="node-limit-all" class="px-2 py-0.5 rounded-lg border text-[9px] border-amber-400/40 hover:bg-amber-400/10 text-amber-300/80">ALL</button>
             </div>
           </div>
-          <input id="node-limit-range" type="range" min="5" max="150" step="5" value="${val}" class="w-full accent-amber-400">
+          <input id="node-limit-range" type="range" min="5" max="${sliderMax}" step="5" value="${val}" class="w-full accent-amber-400">
         </div>
       `;
     } else {
       mount.innerHTML = `
         <div class="flex items-center gap-2">
           <span class="uppercase tracking-[1px] text-white/50">TOP</span>
-          <input id="node-limit-range" type="range" min="5" max="150" step="5" value="${val}" class="w-28 accent-amber-400">
+          <input id="node-limit-range" type="range" min="5" max="${sliderMax}" step="5" value="${val}" class="w-28 accent-amber-400">
           <span id="node-limit-val" class="font-mono w-8 text-amber-300">${current > 0 ? current : 'ALL'}</span>
           <button id="node-limit-all" class="px-2 py-0.5 rounded-xl border text-[9px] border-amber-400/40 hover:bg-amber-400/10 text-amber-300/80">ALL</button>
         </div>
@@ -516,8 +540,9 @@ document.addEventListener("DOMContentLoaded", () => {
       allBtn.onclick = () => {
         if (treeInstance) {
           treeInstance.setMaxNodes(0);
+          if (typeof treeInstance.fitToNodes === 'function') treeInstance.fitToNodes();
           valEl.textContent = 'ALL';
-          if (range) range.value = 80;
+          if (range) range.value = Math.min(80, sliderMax);
           // Sync inspector after expanding back to all
           if (!treeInstance.selectedId) {
             updateDetail(null);
@@ -564,7 +589,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (treeInstance?.viewport) {
       treeInstance.viewport.resize();
       if (typeof treeInstance.computeLayout === 'function') treeInstance.computeLayout();
-      treeInstance.draw();
+      if (typeof treeInstance.fitToNodes === 'function') treeInstance.fitToNodes();
+      else treeInstance.draw();
     }
 
     // Hide loading overlay now that first render + resize is done (Issue #17)
@@ -1133,6 +1159,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Wire constellation switcher buttons (inside the map frame)
+  const allBtn = document.getElementById('btn-constellation-all');
   const supBtn = document.getElementById('btn-constellation-supplements');
   const habBtn = document.getElementById('btn-constellation-habits');
   const exBtn = document.getElementById('btn-constellation-exercises');
@@ -1140,6 +1167,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const envBtn = document.getElementById('btn-constellation-environment');
   const biomarkersBtn = document.getElementById('btn-constellation-biomarkers');
 
+  if (allBtn) allBtn.onclick = () => switchConstellation('all');
   if (supBtn) supBtn.onclick = () => switchConstellation('supplements');
   if (habBtn) habBtn.onclick = () => switchConstellation('habits');
   if (exBtn) exBtn.onclick = () => switchConstellation('exercises');
@@ -1249,11 +1277,11 @@ document.addEventListener("DOMContentLoaded", () => {
     container.innerHTML = `
       <div class="text-left w-full">
         <div class="text-2xl font-semibold title-font tracking-tight ${isNegative ? 'text-red-300' : ''}">${node.name}</div>
-        <div class="text-xs uppercase tracking-widest ${isNegative ? 'text-red-400' : 'text-amber-400'} mt-1">${node.cat.toUpperCase()} • ${node.short}${(node._isBiomarker || node._isBlood) && node.specimen_type ? ' • ' + String(node.specimen_type).toUpperCase() : ''}${isNegative ? ' • HARMFUL' : ''}</div>
+        <div class="text-xs uppercase tracking-widest ${isNegative ? 'text-red-400' : 'text-amber-400'} mt-1">${(node._constellation ? node._constellation + (node._topic ? ' · ' + node._topic : '') : node.cat).toUpperCase()} • ${node.short}${(node._isBiomarker || node._isBlood) && node.specimen_type ? ' • ' + String(node.specimen_type).toUpperCase() : ''}${isNegative ? ' • HARMFUL' : ''}</div>
         
         <div class="mt-4 grid grid-cols-3 gap-2 text-sm">
-          <div class="bg-[#0a0d1a] p-2 rounded-xl">${scoreLabel} <span class="font-mono ${scoreColor}">${node.longevity}</span></div>
-          <div class="bg-[#0a0d1a] p-2 rounded-xl">QoL <span class="font-mono text-violet-300">${node.qol}</span></div>
+          <div class="bg-[#0a0d1a] p-2 rounded-xl">${scoreLabel} <span class="font-mono ${scoreColor}">${node.longevity ?? node.vitality ?? '—'}</span></div>
+          <div class="bg-[#0a0d1a] p-2 rounded-xl">QoL <span class="font-mono text-violet-300">${node.qol ?? '—'}</span></div>
           <div class="bg-[#0a0d1a] p-2 rounded-xl">Overall <span class="font-mono ${overallColor}">${node.vitality}</span></div>
         </div>
 
@@ -1281,9 +1309,10 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="mt-2 grid grid-cols-2 gap-1 text-[10px]">
             <div class="bg-[#0a0d1a] p-1 rounded">Specimen: <span class="font-mono text-violet-300 uppercase">${node.specimen_type || 'blood'}</span></div>
             <div class="bg-[#0a0d1a] p-1 rounded">Status: <span class="font-mono ${node.status==='optimal'?'text-emerald-300':(node.status==='high'?'text-red-300':'text-amber-300')}">${(node.status||'—').toUpperCase()}</span></div>
-            <div class="bg-[#0a0d1a] p-1 rounded">Current: <span class="font-mono text-sky-300">${node.current ?? '?'} ${node.unit || ''}</span></div>
-            <div class="bg-[#0a0d1a] p-1 rounded">Optimal: <span class="font-mono text-emerald-300">${node.optimal || node.blueprint || '—'}</span></div>
-            ${node.age_impact != null ? `<div class="bg-[#0a0d1a] p-1 rounded col-span-2">Age impact: <span class="font-mono ${node.age_impact > 0 ? 'text-red-300' : 'text-emerald-300'}">${node.age_impact > 0 ? '+' : ''}${node.age_impact} yrs</span></div>` : ''}
+            <div class="bg-[#0a0d1a] p-1 rounded">Example: <span class="font-mono text-sky-300">${node.current ?? '?'} ${node.unit || ''}</span></div>
+            <div class="bg-[#0a0d1a] p-1 rounded">Look up: <span class="font-mono text-emerald-300">${node.optimal || node.blueprint || '—'}</span></div>
+            ${node.age_impact != null ? `<div class="bg-[#0a0d1a] p-1 rounded col-span-2">Map weight: <span class="font-mono text-white/70">${node.age_impact}</span> <span class="text-white/40">layout only, not years of life</span></div>` : ''}
+            ${Array.isArray(node.risks) ? `<div class="col-span-2 text-white/50">${node.risks.map((r) => String(r).replace(/_/g, ' ')).join(' · ')}</div>` : ''}
           </div>` : ''}
 
         ${isNegative && (node.avoidance || node.mitigation) ? `
@@ -1425,7 +1454,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let url = node.grokipediaUrl || node.url;
         if (!url) {
           if (node.gorkipedia) {
-            url = `https://grokipedia.com/${encodeURIComponent(node.id)}`;
+            url = `https://grokipedia.com/${encodeURIComponent(node._sourceId || node.id)}`;
           } else {
             // Fallbacks per #10
             url = `https://examine.com/search/?q=${encodeURIComponent(node.name)}`;
@@ -1440,9 +1469,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // My Stack: add/remove current node (desktop left inspector + bottom-sheet full)
     const stackBtn = container.querySelector('#mystack-toggle-node-btn');
     if (stackBtn) {
-      const c = currentTreeType || 'supplements';
-      const nid = String(node.id);
-      const inStack = myStack.has(nid, c);
+      const ident = stackIdentity(node);
+      const inStack = myStack.has(ident.id, ident.constellation);
       stackBtn.textContent = inStack ? 'Remove from My Stack' : 'Add to My Stack';
       stackBtn.className = inStack
         ? 'w-full text-xs py-2 rounded-2xl border border-white/20 hover:bg-white/10 text-white/80'
@@ -1460,7 +1488,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateDetail(node) {
     if (!detailPanel) return;
     if (!node) {
-      const label = currentTreeType === 'biomarkers' ? 'biomarkers' : (currentTreeType === 'environment' ? 'environment' : (currentTreeType === 'habits' ? 'habits' : (currentTreeType === 'exercises' ? 'exercises' : (currentTreeType === 'foods' ? 'foods' : 'supplements'))));
+      const label = currentTreeType === 'all' ? 'full' : (currentTreeType === 'biomarkers' ? 'biomarkers' : (currentTreeType === 'environment' ? 'environment' : (currentTreeType === 'habits' ? 'habits' : (currentTreeType === 'exercises' ? 'exercises' : (currentTreeType === 'foods' ? 'foods' : 'supplements')))));
       detailPanel.innerHTML = `<div class="text-white/60 mb-3">Select a node on the ${label} map</div><div id="organ-impact-inspector" class="mt-2"></div>`;
       try { renderOrganImpactUI(); } catch (_) {}
       return;
@@ -1897,10 +1925,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function stackIdentity(node) {
+    return {
+      id: String(node?._sourceId || node?.id || ''),
+      constellation: String(node?._constellation || currentTreeType || 'supplements')
+    };
+  }
+
   function toggleMyStackNode(node, btnEl) {
     if (!node || node.id == null) return;
-    const id = String(node.id);
-    const c = String(currentTreeType || window.AETHERIS?.currentConstellation || 'supplements');
+    const ident = stackIdentity(node);
+    const id = ident.id;
+    const c = ident.constellation;
     const wasEmpty = myStack.getCount() === 0;
     const result = myStack.toggle(id, c);
     const nowIn = myStack.has(id, c);
@@ -2439,6 +2475,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === Keyboard shortcuts (polish + power user delight) ===
   function openCatalogNode(constellation, id) {
+    if (currentTreeType === 'all') {
+      const composite = `${constellation}::${id}`;
+      const node = (treeInstance?.nodes || []).find((n) => n.id === composite);
+      if (!node) return;
+      if (node.cat && typeof treeInstance.setGroupEnabled === 'function') {
+        treeInstance.setGroupEnabled(node.cat, true);
+      }
+      treeInstance.select(node.id);
+      if (typeof treeInstance.centerOn === 'function') treeInstance.centerOn(node);
+      handleNodeSelection(node);
+      syncGroupFilterChips();
+      return;
+    }
     if (currentTreeType !== constellation) switchConstellation(constellation);
     if (!treeInstance) return;
     const node = (treeInstance.nodes || []).find((n) => n.id === id);

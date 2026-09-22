@@ -4,7 +4,9 @@
 // Designed to reuse the SupplementTree / body-centric visualization with red damage highlights for bad foods.
 // Data includes serving suggestions (dosage), mechanisms (benefit or harm), studies, gorkipedia entries, risks/negatives.
 
-export const foods = [
+import { FOOD_WAVE } from './wave2.js';
+
+const foodsCore = [
   // === VEGETABLES (positive) ~12
   { id: "broccoli", name: "Broccoli", short: "BROCCOLI", cat: "vegetables", impact: "positive", longevity: 88, qol: 82, diseases: 12, organs: ["gut", "immune", "liver", "brain"], evidence: "5/5",
     blurb: "Cruciferous powerhouse packed with sulforaphane, fiber, and vitamins. Strongly supports detoxification and reduces cancer risk markers.",
@@ -803,7 +805,7 @@ export const foods = [
     risks: "None." }
 ];
 
-// Ensure exactly 100 by count in array above (we have padded to reach it with the listed entries + comments indicating 80/20 split).
+export const foods = foodsCore.concat(FOOD_WAVE);
 
 export const foodCategories = [
   { key: "all", label: "ALL", icon: "fa-infinity" },

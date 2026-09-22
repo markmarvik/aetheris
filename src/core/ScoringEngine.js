@@ -9,6 +9,10 @@
 
 export function calcVitality(supplement) {
   if (!supplement) return 0;
+  // Authored vitality is the map score. The longevity/QoL blend only fills nodes that omitted it.
+  if (typeof supplement.vitality === 'number' && Number.isFinite(supplement.vitality)) {
+    return Math.round(supplement.vitality);
+  }
   const l = supplement.longevity ?? 70;
   const q = supplement.qol ?? 70;
   return Math.round(l * 0.65 + q * 0.35);

@@ -1,7 +1,9 @@
-// Top 30 Habits Constellation — positive & negative daily behaviors
+import { HABIT_WAVE, withEducationalStudy } from './wave2.js';
+
+// Habits constellation — positive and negative daily behaviors.
 // Designed to reuse the same UI components as the Supplements tree (modular reuse).
 
-export const habits = [
+const habitsCore = [
   { id: "sleep8", name: "Consistent 8h Sleep", short: "8H SLEEP", cat: "sleep", vitality: 94, qol: 91, diseases: 12, organs: ["brain", "heart", "immune"], evidence: "5/5",
     blurb: "The single highest-ROI habit. Every major system repairs during deep sleep. Consistent timing beats duration.",
     mechanisms: ["Glymphatic clearance", "Hormone regulation", "Cellular repair"], studies: [{year:2023, finding:"7-9h consistent sleep linked to +3-4y life expectancy", source:"Large cohorts"}],
@@ -275,6 +277,8 @@ export const habits = [
     gorkipedia: "Your mouth is the gateway to your body. Inflammation here spreads everywhere.",
     risks: "Periodontitis, tooth loss, heart disease, Alzheimer's association, diabetes worsening." }
 ];
+
+export const habits = habitsCore.map(withEducationalStudy).concat(HABIT_WAVE);
 
 export const habitCategories = [
   { key: "all", label: "ALL", icon: "fa-infinity" },

@@ -5,7 +5,9 @@
  * See GitHub Issue #14.
  */
 
-export const biomarkers = [
+import { BIO_WAVE, withEducationalStudy } from './wave2.js';
+
+const biomarkersCore = [
   // ========== INFLAMMATION ==========
   {
     id: "hs_crp",
@@ -845,6 +847,8 @@ export const biomarkers = [
     evidence: "3/5"
   }
 ];
+
+export const biomarkers = biomarkersCore.map(withEducationalStudy).concat(BIO_WAVE);
 
 export const biomarkerCategories = [
   { key: "all", label: "ALL", icon: "fa-vial" },

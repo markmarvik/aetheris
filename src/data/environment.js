@@ -5,7 +5,9 @@
  * Scores are deliberately low to reflect harm (red nodes, avoid framing).
  */
 
-export const environment = [
+import { ENV_WAVE, withEducationalStudy } from './wave2.js';
+
+const environmentCore = [
   // Air Pollution & Gases
   {
     id: "pm25",
@@ -364,8 +366,8 @@ export const environment = [
   },
   {
     id: "glyphosate-full",
-    name: "Glyphosate (Roundup & GM Crops)",
-    short: "GLYPHOSATE",
+    name: "Herbicide residue in grain staples",
+    short: "GRAIN RESIDUE",
     cat: "pesticides",
     impact: "negative",
     longevity: 28,
@@ -374,8 +376,8 @@ export const environment = [
     organs: ["gut", "liver", "kidney"],
     mechanisms: ["Gut microbiome disruption, oxidative stress"],
     risks: "Cancer (IARC), kidney/liver issues, endocrine disruption",
-    blurb: "Most used herbicide globally. Residues common in food.",
-    avoidance: "Organic foods; wash produce; support regenerative ag",
+    blurb: "The food-exposure companion to the glyphosate node: oats, wheat, and processed grains are where residue shows up in shopping baskets. IARC called glyphosate a probable carcinogen; other regulators disagree. This card is about lowering residue, not a verdict.",
+    avoidance: "Organic oats and wheat when you eat them often; wash produce; the parent glyphosate node covers the molecule itself",
     url: "https://grokipedia.com/glyphosate"
   },
   {
@@ -424,6 +426,8 @@ export const environment = [
     avoidance: "Proper med disposal; advanced water filters (activated carbon + RO)"
   }
 ];
+
+export const environment = environmentCore.map(withEducationalStudy).concat(ENV_WAVE);
 
 export const environmentCategories = [
   { key: "all", label: "ALL", icon: "fa-infinity" },
